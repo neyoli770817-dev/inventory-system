@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>八毅庫存管理 2.0</title>
+    <title>八毅庫存管理 3.0</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
@@ -11,14 +11,24 @@
         body { font-family: -apple-system, sans-serif; background-color: var(--bg-wine); color: white; margin: 0; padding: 10px; }
         .page { display: none; padding-bottom: 50px; } .page.active { display: block; }
         .header { text-align: center; padding: 15px 0; position: sticky; top: 0; background: var(--bg-wine); z-index: 100; }
+        
+        /* 表單樣式 */
+        .form-container { max-width: 500px; margin: 0 auto 20px auto; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 14px; }
+        .form-control { width: 100%; padding: 10px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
+        
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin: 0 auto; }
-        .menu-item { background: var(--btn-white); aspect-ratio: 1/1; border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .menu-item { background: var(--btn-white); aspect-ratio: 1/1; border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .menu-item span { color: var(--text-dark); font-weight: bold; font-size: 18px; margin-top: 10px; }
-        .item-card { background: white; color: var(--text-dark); border-radius: 12px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .ctrl-btn { width: 45px; height: 45px; border: none; border-radius: 8px; font-size: 22px; font-weight: bold; color: white; cursor: pointer; }
-        .btn-minus { background: #F44336; } .btn-plus { background: #4CAF50; }
+        
+        .item-card { background: white; color: var(--text-dark); border-radius: 12px; padding: 15px; margin-bottom: 10px; }
+        .item-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .qty-input-group { display: flex; align-items: center; gap: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        .input-num { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 5px; text-align: center; font-size: 18px; }
+        .submit-btn { flex: 1; background: #4CAF50; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        
         .back-btn { background: none; border: 1px solid white; color: white; padding: 8px 12px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; }
-        .search-bar { width: 100%; padding: 12px; border-radius: 8px; border: none; margin-bottom: 15px; font-size: 16px; box-sizing: border-box; }
         .truss-icon { width: 70px; height: auto; }
         .summary-item { border-bottom: 1px solid rgba(255,255,255,0.2); padding: 10px; display: flex; justify-content: space-between; }
     </style>
@@ -26,7 +36,29 @@
 <body>
 
     <div id="homePage" class="page active">
-        <div class="header"><h1>八毅庫存管理</h1></div>
+        <div class="header"><h1>八毅庫存管理 3.0</h1></div>
+        
+        <div class="form-container">
+            <div class="form-group">
+                <label>員工姓名</label>
+                <select id="userName" class="form-control">
+                    <option value="">請選擇人員...</option>
+                    <option>邱正豪</option><option>邱宥瑋</option><option>廖恆光</option>
+                    <option>林睿</option><option>董坤舜</option><option>黎光庭</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>日期</label>
+                <input type="date" id="actionDate" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>取用目的</label>
+                <select id="actionPurpose" class="form-control">
+                    <option>取用</option><option>借用</option><option>歸還</option>
+                </select>
+            </div>
+        </div>
+
         <div class="menu-grid">
             <div class="menu-item" onclick="openCategory('truss')">
                 <img src="https://i.imgur.com/K3Vw8Ym.png" class="truss-icon"><span>Truss類</span>
@@ -45,17 +77,16 @@
 
     <div id="listPage" class="page">
         <div class="header">
-            <button class="back-btn" onclick="showPage('homePage')">← 返回</button>
-            <h2 id="categoryTitle" style="margin:5px 0"></h2>
-            <input type="text" class="search-bar" placeholder="🔍 搜尋品項..." onkeyup="filterItems(this.value)">
+            <button class="back-btn" onclick="showPage('homePage')">← 返回主頁</button>
+            <h2 id="categoryTitle"></h2>
         </div>
         <div id="itemContainer" style="max-width:600px; margin:0 auto;"></div>
     </div>
 
     <div id="summaryPage" class="page">
         <div class="header">
-            <button class="back-btn" onclick="showPage('homePage')">← 返回</button>
-            <h1>即時庫存總量</h1>
+            <button class="back-btn" onclick="showPage('homePage')">← 返回主頁</button>
+            <h1>即時庫存總表</h1>
         </div>
         <div id="summaryContainer" style="max-width:600px; margin:0 auto; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 10px;"></div>
     </div>
@@ -73,7 +104,9 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 依照您的要求重新分類：名稱含 Truss 的放左邊，其餘放右邊
+        // 設定預設日期為今天
+        document.getElementById('actionDate').valueAsDate = new Date();
+
         const allItems = [
             "3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "C夾", "Truss鐵板", "3米Truss後撐", "2米Truss後撐", "70Truss側拉", "50Truss側拉",
             "6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "墊箱", "12呎馬椅", "10呎馬椅", "9呎馬椅", "8尺馬椅", "6呎馬椅", "5呎馬椅", "3呎馬椅", "桌車", "椅車", "黑桌巾", "桌巾", "會議桌桌巾(紅布145*270)", "椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150", "3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(大紅)", "3米頂篷(紅)", "骨架300*300", "3米燈", "3米水溝", "屋型帳(紅)", "骨架300*600", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "骨架600*600", "6米水溝布", "6米圍布(白)", "6米邊", "6米腳", "6米雞爪", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "圓拱圍布(紅)", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "沙包"
@@ -98,13 +131,13 @@
                 const card = document.createElement('div');
                 card.className = 'item-card';
                 card.innerHTML = `
-                    <div style="flex:1">
-                        <div style="font-size:16px; font-weight:bold">${name}</div>
-                        <div id="qty-${name}" style="font-size:24px; color:#2196F3; font-weight:bold">0</div>
+                    <div class="item-info">
+                        <span style="font-weight:bold; font-size:16px;">${name}</span>
+                        <span id="qty-${name}" style="font-size:20px; color:#2196F3; font-weight:bold">0</span>
                     </div>
-                    <div style="display:flex; gap:10px;">
-                        <button class="ctrl-btn btn-minus" onclick="updateQty('${name}', -1)">-</button>
-                        <button class="ctrl-btn btn-plus" onclick="updateQty('${name}', 1)">+</button>
+                    <div class="qty-input-group">
+                        <input type="number" id="input-${name}" class="input-num" placeholder="數量">
+                        <button class="submit-btn" onclick="submitChange('${name}')">確認送出</button>
                     </div>
                 `;
                 container.appendChild(card);
@@ -116,34 +149,52 @@
             showPage('listPage');
         }
 
-        function updateQty(name, delta) {
-            db.ref('inventory/' + name).transaction(curr => (curr || 0) + delta);
-        }
+        function submitChange(itemName) {
+            const user = document.getElementById('userName').value;
+            const date = document.getElementById('actionDate').value;
+            const purpose = document.getElementById('actionPurpose').value;
+            const inputVal = parseInt(document.getElementById('input-' + itemName).value);
 
-        function filterItems(q) {
-            document.querySelectorAll('.item-card').forEach(card => {
-                card.style.display = card.innerText.toLowerCase().includes(q.toLowerCase()) ? 'flex' : 'none';
+            if (!user) { alert('請先選擇員工姓名！'); return; }
+            if (isNaN(inputVal)) { alert('請輸入有效的數量！'); return; }
+
+            // 判斷增減：如果是取用或借用，數量變負值；如果是歸還，數量變正值
+            let delta = (purpose === '歸還') ? Math.abs(inputVal) : -Math.abs(inputVal);
+
+            // 1. 更新庫存總數
+            db.ref('inventory/' + itemName).transaction(curr => (curr || 0) + delta);
+
+            // 2. 記錄歷史 Log (方便以後對帳)
+            const logRef = db.ref('logs').push();
+            logRef.set({
+                user: user,
+                date: date,
+                purpose: purpose,
+                item: itemName,
+                amount: inputVal,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
             });
+
+            // 清空輸入框
+            document.getElementById('input-' + itemName).value = '';
+            alert(`${user} 已完成 ${itemName} ${purpose}：${inputVal}`);
         }
 
         function showSummary() {
             const container = document.getElementById('summaryContainer');
-            container.innerHTML = '<p style="text-align:center">更新中...</p>';
+            container.innerHTML = '<p style="text-align:center">載入中...</p>';
             db.ref('inventory').once('value', snap => {
                 container.innerHTML = '';
                 const items = snap.val() || {};
                 const sortedKeys = Object.keys(items).sort();
-                let hasStock = false;
                 sortedKeys.forEach(name => {
                     if(items[name] !== 0) {
-                        hasStock = true;
                         const row = document.createElement('div');
                         row.className = 'summary-item';
                         row.innerHTML = `<span>${name}</span><span style="font-weight:bold; color:#4CAF50">${items[name]}</span>`;
                         container.appendChild(row);
                     }
                 });
-                if(!hasStock) container.innerHTML = '<p style="text-align:center">目前無庫存記錄</p>';
             });
             showPage('summaryPage');
         }
