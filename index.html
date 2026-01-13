@@ -3,40 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>八毅庫存管理 3.0</title>
+    <title>八毅庫存管理 4.0 (語音版)</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         :root { --bg-wine: #4A0404; --btn-white: #FFFFFF; --text-dark: #333; }
         body { font-family: -apple-system, sans-serif; background-color: var(--bg-wine); color: white; margin: 0; padding: 10px; }
         .page { display: none; padding-bottom: 50px; } .page.active { display: block; }
-        .header { text-align: center; padding: 15px 0; position: sticky; top: 0; background: var(--bg-wine); z-index: 100; }
+        .header { text-align: center; padding: 15px 0; background: var(--bg-wine); }
         
-        /* 表單樣式 */
         .form-container { max-width: 500px; margin: 0 auto 20px auto; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; }
-        .form-group { margin-bottom: 10px; }
+        .form-group { margin-bottom: 12px; position: relative; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 14px; }
-        .form-control { width: 100%; padding: 10px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
+        .form-control { width: 100%; padding: 12px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
         
+        /* 語音按鈕樣式 */
+        .voice-btn { position: absolute; right: 8px; top: 32px; background: #2196F3; color: white; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+        .recording { animation: pulse 1.5s infinite; background: #f44336; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin: 0 auto; }
         .menu-item { background: var(--btn-white); aspect-ratio: 1/1; border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .menu-item span { color: var(--text-dark); font-weight: bold; font-size: 18px; margin-top: 10px; }
         
         .item-card { background: white; color: var(--text-dark); border-radius: 12px; padding: 15px; margin-bottom: 10px; }
-        .item-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .qty-input-group { display: flex; align-items: center; gap: 10px; border-top: 1px solid #eee; padding-top: 10px; }
-        .input-num { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 5px; text-align: center; font-size: 18px; }
-        .submit-btn { flex: 1; background: #4CAF50; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        
-        .back-btn { background: none; border: 1px solid white; color: white; padding: 8px 12px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; }
+        .submit-btn { width: 100%; background: #4CAF50; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; margin-top: 10px; font-size: 16px; }
         .truss-icon { width: 70px; height: auto; }
-        .summary-item { border-bottom: 1px solid rgba(255,255,255,0.2); padding: 10px; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
 
     <div id="homePage" class="page active">
-        <div class="header"><h1>八毅庫存管理 3.0</h1></div>
+        <div class="header"><h1>八毅庫存 4.0 🎙️</h1></div>
         
         <div class="form-container">
             <div class="form-group">
@@ -47,16 +45,14 @@
                     <option>林睿</option><option>董坤舜</option><option>黎光庭</option>
                 </select>
             </div>
+            
             <div class="form-group">
-                <label>日期</label>
-                <input type="date" id="actionDate" class="form-control">
+                <label>取用目的 / 備註 (可語音輸入)</label>
+                <input type="text" id="actionPurpose" class="form-control" placeholder="點擊右側麥克風說話">
+                <button type="button" class="voice-btn" id="startVoice">🎤</button>
             </div>
-            <div class="form-group">
-                <label>取用目的</label>
-                <select id="actionPurpose" class="form-control">
-                    <option>取用</option><option>借用</option><option>歸還</option>
-                </select>
-            </div>
+            
+            <p id="voiceStatus" style="font-size: 12px; color: #81D4FA; text-align: center; margin: 0;"></p>
         </div>
 
         <div class="menu-grid">
@@ -66,32 +62,22 @@
             <div class="menu-item" onclick="openCategory('tent')">
                 <div style="font-size:50px">⛺</div><span>帳篷類</span>
             </div>
-            <div class="menu-item" onclick="showSummary()">
-                <div style="font-size:50px">📊</div><span>即時庫存看</span>
-            </div>
-            <div class="menu-item" onclick="alert('尚未分類')">
-                <div style="font-size:50px">📦</div><span>其它</span>
+            <div class="menu-item" onclick="alert('正在對接 Firebase Storage，此功能將在下一版上線！')">
+                <div style="font-size:50px">📻</div><span>語音訊息匣</span>
             </div>
         </div>
     </div>
 
     <div id="listPage" class="page">
         <div class="header">
-            <button class="back-btn" onclick="showPage('homePage')">← 返回主頁</button>
+            <button onclick="showPage('homePage')" style="background:none; border:1px solid white; color:white; padding:8px 15px; border-radius:5px;">← 返回</button>
             <h2 id="categoryTitle"></h2>
         </div>
         <div id="itemContainer" style="max-width:600px; margin:0 auto;"></div>
     </div>
 
-    <div id="summaryPage" class="page">
-        <div class="header">
-            <button class="back-btn" onclick="showPage('homePage')">← 返回主頁</button>
-            <h1>即時庫存總表</h1>
-        </div>
-        <div id="summaryContainer" style="max-width:600px; margin:0 auto; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 10px;"></div>
-    </div>
-
     <script>
+        // 1. Firebase 配置
         const firebaseConfig = {
             apiKey: "AIzaSyBNiATgf4yVR5qZ5CEmGClfm22yjq2fBlI",
             authDomain: "bayi-inventory.firebaseapp.com",
@@ -104,25 +90,55 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // 設定預設日期為今天
-        document.getElementById('actionDate').valueAsDate = new Date();
+        // 2. 語音辨識邏輯 (Web Speech API)
+        const voiceBtn = document.getElementById('startVoice');
+        const purposeInput = document.getElementById('actionPurpose');
+        const statusText = document.getElementById('voiceStatus');
 
-        const allItems = [
-            "3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "C夾", "Truss鐵板", "3米Truss後撐", "2米Truss後撐", "70Truss側拉", "50Truss側拉",
-            "6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "墊箱", "12呎馬椅", "10呎馬椅", "9呎馬椅", "8尺馬椅", "6呎馬椅", "5呎馬椅", "3呎馬椅", "桌車", "椅車", "黑桌巾", "桌巾", "會議桌桌巾(紅布145*270)", "椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150", "3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(大紅)", "3米頂篷(紅)", "骨架300*300", "3米燈", "3米水溝", "屋型帳(紅)", "骨架300*600", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "骨架600*600", "6米水溝布", "6米圍布(白)", "6米邊", "6米腳", "6米雞爪", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "圓拱圍布(紅)", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "沙包"
-        ];
+        if ('webkitSpeechRecognition' in window) {
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'zh-TW';
+            recognition.continuous = false;
 
-        const categories = {
-            truss: allItems.filter(name => name.toLowerCase().includes('truss')),
-            tent: allItems.filter(name => !name.toLowerCase().includes('truss'))
-        };
+            voiceBtn.onclick = () => {
+                recognition.start();
+                voiceBtn.classList.add('recording');
+                statusText.innerText = "正在聆聽中...";
+            };
 
-        function showPage(id) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            window.scrollTo(0,0);
+            recognition.onresult = (event) => {
+                const result = event.results[0][0].transcript;
+                purposeInput.value = result;
+                voiceBtn.classList.remove('recording');
+                statusText.innerText = "辨識成功！";
+                // 自動發送到 Firebase 通知老闆
+                sendVoiceNotice(result);
+            };
+
+            recognition.onerror = () => {
+                voiceBtn.classList.remove('recording');
+                statusText.innerText = "語音出錯，請再試一次";
+            };
+        } else {
+            voiceBtn.style.display = 'none';
+            statusText.innerText = "您的瀏覽器不支援語音輸入";
         }
 
+        // 3. 即時發送通知給您
+        function sendVoiceNotice(text) {
+            const user = document.getElementById('userName').value || "未知員工";
+            db.ref('voice_notices').push({
+                user: user,
+                message: text,
+                time: new Date().toLocaleString()
+            });
+        }
+
+        // 庫存邏輯 (與 3.0 一致)
+        const allItems = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "C夾", "Truss鐵板", "3米Truss後撐", "2米Truss後撐", "70Truss側拉", "50Truss側拉", "6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "墊箱", "12呎馬椅", "10呎馬椅", "9呎馬椅", "8尺馬椅", "6呎馬椅", "5呎馬椅", "3呎馬椅", "桌車", "椅車", "黑桌巾", "桌巾", "會議桌桌巾", "椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150", "3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(大紅)", "3米頂篷(紅)", "骨架300*300", "3米燈", "3米水溝", "屋型帳(紅)", "骨架300*600", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "骨架600*600", "6米水溝布", "6米圍布(白)", "6米邊", "6米腳", "6米雞爪", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "圓拱圍布(紅)", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "沙包"];
+        const categories = { truss: allItems.filter(n => n.includes('Truss')), tent: allItems.filter(n => !n.includes('Truss')) };
+
+        function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function openCategory(cat) {
             document.getElementById('categoryTitle').innerText = (cat === 'truss' ? '🏗️ Truss類' : '⛺ 帳篷類');
             const container = document.getElementById('itemContainer');
@@ -130,73 +146,20 @@
             categories[cat].forEach(name => {
                 const card = document.createElement('div');
                 card.className = 'item-card';
-                card.innerHTML = `
-                    <div class="item-info">
-                        <span style="font-weight:bold; font-size:16px;">${name}</span>
-                        <span id="qty-${name}" style="font-size:20px; color:#2196F3; font-weight:bold">0</span>
-                    </div>
-                    <div class="qty-input-group">
-                        <input type="number" id="input-${name}" class="input-num" placeholder="數量">
-                        <button class="submit-btn" onclick="submitChange('${name}')">確認送出</button>
-                    </div>
-                `;
+                card.innerHTML = `<div style="display:flex; justify-content:space-between; color:#333"><b>${name}</b><span id="qty-${name}">0</span></div><div style="margin-top:10px; display:flex; gap:5px;"><input type="number" id="in-${name}" style="flex:1; padding:8px;" placeholder="數量"><button class="submit-btn" onclick="submitChange('${name}')" style="flex:1">送出</button></div>`;
                 container.appendChild(card);
-                db.ref('inventory/' + name).on('value', snap => {
-                    const el = document.getElementById(`qty-${name}`);
-                    if(el) el.innerText = snap.val() || 0;
-                });
+                db.ref('inventory/' + name).on('value', s => { document.getElementById(`qty-${name}`).innerText = s.val() || 0; });
             });
             showPage('listPage');
         }
-
-        function submitChange(itemName) {
+        function submitChange(name) {
             const user = document.getElementById('userName').value;
-            const date = document.getElementById('actionDate').value;
             const purpose = document.getElementById('actionPurpose').value;
-            const inputVal = parseInt(document.getElementById('input-' + itemName).value);
-
-            if (!user) { alert('請先選擇員工姓名！'); return; }
-            if (isNaN(inputVal)) { alert('請輸入有效的數量！'); return; }
-
-            // 判斷增減：如果是取用或借用，數量變負值；如果是歸還，數量變正值
-            let delta = (purpose === '歸還') ? Math.abs(inputVal) : -Math.abs(inputVal);
-
-            // 1. 更新庫存總數
-            db.ref('inventory/' + itemName).transaction(curr => (curr || 0) + delta);
-
-            // 2. 記錄歷史 Log (方便以後對帳)
-            const logRef = db.ref('logs').push();
-            logRef.set({
-                user: user,
-                date: date,
-                purpose: purpose,
-                item: itemName,
-                amount: inputVal,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-
-            // 清空輸入框
-            document.getElementById('input-' + itemName).value = '';
-            alert(`${user} 已完成 ${itemName} ${purpose}：${inputVal}`);
-        }
-
-        function showSummary() {
-            const container = document.getElementById('summaryContainer');
-            container.innerHTML = '<p style="text-align:center">載入中...</p>';
-            db.ref('inventory').once('value', snap => {
-                container.innerHTML = '';
-                const items = snap.val() || {};
-                const sortedKeys = Object.keys(items).sort();
-                sortedKeys.forEach(name => {
-                    if(items[name] !== 0) {
-                        const row = document.createElement('div');
-                        row.className = 'summary-item';
-                        row.innerHTML = `<span>${name}</span><span style="font-weight:bold; color:#4CAF50">${items[name]}</span>`;
-                        container.appendChild(row);
-                    }
-                });
-            });
-            showPage('summaryPage');
+            const val = parseInt(document.getElementById('in-' + name).value);
+            if(!user || isNaN(val)) return alert('請選姓名並輸入數量');
+            db.ref('inventory/' + name).transaction(c => (c || 0) + val);
+            db.ref('logs').push({ user, name, val, purpose, time: new Date().toLocaleString() });
+            alert('紀錄成功');
         }
     </script>
 </body>
