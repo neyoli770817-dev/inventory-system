@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>八毅庫存系統</title>
+    <style>
+        :root {
+            --bg-wine: #4A0404; 
+            --btn-white: #FFFFFF;
+            --text-dark: #333333;
+            --accent-blue: #2196F3;
+            --accent-green: #4CAF50;
+            --accent-red: #F44336;
+        }
+
+        body {
+            font-family: -apple-system, "Microsoft JhengHei", sans-serif;
+            background-color: var(--bg-wine);
+            color: white;
+            margin: 0;
+            padding: 10px;
+        }
+
+        /* 介面切換控制 */
+        .page { display: none; }
+        .page.active { display: block; }
+
+        .header { text-align: center; padding: 20px 0; }
+        h1 { font-size: 24px; margin: 0; letter-spacing: 1px; }
+
+        /* --- 主選單頁面 --- */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .menu-item {
+            background-color: var(--btn-white);
+            aspect-ratio: 1 / 1;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        .menu-item span { color: var(--text-dark); font-weight: bold; font-size: 18px; margin-top: 10px; }
+        .icon { font-size: 40px; }
+
+        /* --- 細項列表頁面 --- */
+        .list-container { max-width: 600px; margin: 0 auto; }
+        
+        .back-btn {
+            background: none; border: 1px solid white; color: white;
+            padding: 8px 15px; border-radius: 5px; margin-bottom: 15px;
+        }
+
+        .item-card {
+            background: var(--btn-white);
+            color: var(--text-dark);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .item-info { flex: 1; }
+        .item-name { font-size: 16px; font-weight: bold; }
+        .item-qty { font-size: 20px; color: var(--accent-blue); font-weight: bold; margin-top: 5px; }
+
+        .controls { display: flex; gap: 8px; }
+        .ctrl-btn {
+            width: 45px; height: 45px; border: none; border-radius: 8px;
+            font-size: 20px; font-weight: bold; color: white;
+        }
+        .btn-minus { background-color: var(--accent-red); }
+        .btn-plus { background-color: var(--accent-green); }
+
+        /* 搜尋列 */
+        .search-bar {
+            width: 100%; padding: 12px; border-radius: 8px; border: none;
+            margin-bottom: 15px; box-sizing: border-box; font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="homePage" class="page active">
+    <div class="header">
+        <h1>八毅庫存管理</h1>
+    </div>
+    <div class="menu-grid">
+        <div class="menu-item" style="cursor: pointer;" onclick="showPage('listPage');">
+            <div class="icon">⛺</div><span>帳棚類</span>
+        </div>
+        <div class="menu-item" style="cursor: pointer;" onclick="alert('尚未分類');">
+            <div class="icon">🔩</div><span>配件類</span>
+        </div>
+        <div class="menu-item" style="cursor: pointer;" onclick="alert('尚未分類');">
+            <div class="icon">🪑</div><span>桌椅類</span>
+        </div>
+        <div class="menu-item" style="cursor: pointer;" onclick="alert('尚未分類');">
+            <div class="icon">📦</div><span>其它</span>
+        </div>
+    </div>
+</div>
+
+    <div id="listPage" class="page">
+        <div class="header">
+            <button class="back-btn" onclick="showPage('homePage')">← 返回主選單</button>
+            <h1>帳棚類品項清單</h1>
+        </div>
+        
+        <div class="list-container">
+            <input type="text" class="search-bar" placeholder="🔍 快速搜尋品項..." onkeyup="filterItems(this.value)">
+            <div id="inventoryItems">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // 您提供的所有品項資料
+        const items = [
+            "3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "C夾", "Truss鐵板", "3米Truss後撐", "2米Truss後撐", "70Truss側拉", "50Truss側拉", "6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "墊箱", "12呎馬椅", "10呎馬椅", "9呎馬椅", "8尺馬椅", "6呎馬椅", "5呎馬椅", "3呎馬椅", "桌車", "椅車", "黑桌巾", "桌巾", "會議桌桌巾(紅布145*270)", "椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150", "3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(大紅)", "3米頂篷(紅)", "骨架300*300", "3米燈", "3米水溝", "屋型帳(紅)", "骨架300*600", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "骨架600*600", "6米水溝布", "6米圍布(白)", "6米邊", "6米腳", "6米雞爪", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "圓拱圍布(紅)", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "沙包"
+        ];
+
+        // 頁面切換函式
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            window.scrollTo(0,0);
+        }
+
+        // 生成品項列表
+        const container = document.getElementById('inventoryItems');
+        items.forEach((name, index) => {
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            card.innerHTML = `
+                <div class="item-info">
+                    <div class="item-name">${name}</div>
+                    <div class="item-qty" id="qty-${index}">0</div>
+                </div>
+                <div class="controls">
+                    <button class="ctrl-btn btn-minus" onclick="changeQty(${index}, -1)">-</button>
+                    <button class="ctrl-btn btn-plus" onclick="changeQty(${index}, 1)">+</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        // 數量加減 (目前僅暫存於畫面)
+        function changeQty(index, delta) {
+            const qtyLabel = document.getElementById(`qty-${index}`);
+            let currentQty = parseInt(qtyLabel.innerText);
+            currentQty = Math.max(0, currentQty + delta); // 不允許負數
+            qtyLabel.innerText = currentQty;
+        }
+
+        // 搜尋功能
+        function filterItems(query) {
+            const cards = document.querySelectorAll('.item-card');
+            cards.forEach(card => {
+                const name = card.querySelector('.item-name').innerText;
+                card.style.display = name.includes(query) ? 'flex' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>
