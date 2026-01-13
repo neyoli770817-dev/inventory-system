@@ -99,21 +99,34 @@
         <h1>八毅庫存管理</h1>
     </div>
     <div class="menu-grid">
-        <div class="menu-item" style="cursor: pointer;" onclick="showPage('listPage');">
-            <div class="ico📏</div><span>Truss類</span>
+    <div class="menu-item" style="cursor: pointer;" onclick="showPage('listPage');">
+        <div class="icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" />
+                <path d="M3 3l18 18M3 21L21 3" />
+            </svg>
         </div>
-        <div class="menu-item" style="cursor: pointer;" onclick="showPage('listPage');">
-            <div class="icon">⛺</div><span>帳篷類</span>
-        </div>
-        <div class="menu-item" style="cursor: pointer;" onclick="alert('尚未分類');">
-            <div class="icon">🔩</div><span>配件類</span>
-        </div>
-        <div class="menu-item" style="cursor: pointer;" onclick="alert('尚未分類');">
-            <div class="icon">🪑</div><span>桌椅類</span>
-        </div>
-        <div class="menu-item" style="cursor: pointer;" onclick="alert('尚未分類');">
-            <div class="icon">📦</div><span>其它</span>
-        </div>
+        <span>Truss類</span>
+    </div>
+
+    <div class="menu-item" style="cursor: pointer;" onclick="showPage('listPage');">
+        <div class="icon">⛺</div><span>帳篷類</span>
+    </div>
+
+    <div class="menu-item" style="cursor: pointer;" onclick="alert('尚未分類');">
+        <div class="icon">🔩</div><span>配件類</span>
+    </div>
+
+    <div class="menu-item" style="cursor: pointer;" onclick="alert('尚未分類');">
+        <div class="icon">🪑</div><span>桌椅類</span>
+    </div>
+
+    <a href="您的MEGA檔案公開連結網址" target="_blank" class="menu-item" style="text-decoration: none;">
+        <div class="icon">📊</div><span style="color: var(--text-dark);">即時庫存看</span>
+    </a>
+
+    <div class="menu-item" style="cursor: pointer;" onclick="alert('尚未分類');">
+        <div class="icon">📦</div><span>其它</span>
     </div>
 </div>
 
@@ -181,3 +194,4 @@
 </body>
 
 </html>
+
