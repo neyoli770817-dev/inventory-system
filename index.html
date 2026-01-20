@@ -111,15 +111,16 @@
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBNiATgf4yVR5qZ5CEmGClfm22yjq2fBlI",
-            authDomain: "bayi-inventory.firebaseapp.com",
-            projectId: "bayi-inventory",
-            databaseURL: "https://bayi-inventory-default-rtdb.asia-southeast1.firebasedatabase.app",
-            storageBucket: "bayi-inventory.firebasestorage.app",
-            messagingSenderId: "494997600674",
-            appId: "1:494997600674:web:711588fab8d8ae70eb5afb"
-        };
+       const firebaseConfig = {
+    apiKey: "AIzaSyBNiATgf4yVR5qZ5CEmGClfm22yjq2fBlI",
+    authDomain: "bayi-inventory.firebaseapp.com",
+    projectId: "bayi-inventory",
+    // 這裡請改成你截圖中看到的那個網址
+    databaseURL: "https://bayi-inventory-default-rtdb.firebaseio.com", 
+    storageBucket: "bayi-inventory.firebasestorage.app",
+    messagingSenderId: "494997600674",
+    appId: "1:494997600674:web:711588fab8d8ae70eb5afb"
+};
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         document.getElementById('actionDate').valueAsDate = new Date();
@@ -206,6 +207,7 @@
     </script>
 </body>
 </html>
+
 
 
 
