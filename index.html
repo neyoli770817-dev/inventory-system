@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>八毅庫存管理 4.0</title>
+    <title>八毅庫存管理 4.0 - 免費版</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
@@ -15,11 +15,13 @@
         .form-group { margin-bottom: 10px; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 14px; }
         .form-control { width: 100%; padding: 10px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
-        .voice-section { max-width: 500px; margin: 0 auto 20px auto; background: #e91e63; padding: 15px; border-radius: 15px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .voice-btn-large { width: 60px; height: 60px; background: white; border: none; border-radius: 50%; font-size: 30px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 10px; transition: transform 0.2s; }
-        .voice-btn-large:active { transform: scale(0.9); }
-        .recording { background: #ffeb3b; animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0px rgba(255,235,59,0.7); } 100% { box-shadow: 0 0 0 15px rgba(255,235,59,0); } }
+        
+        /* 留言區塊樣式 */
+        .note-section { max-width: 500px; margin: 0 auto 20px auto; background: #2196F3; padding: 15px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .note-input { width: 100%; padding: 12px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; }
+        .send-note-btn { width: 100%; background: #FFFFFF; color: #2196F3; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        .send-note-btn:active { background: #e0e0e0; }
+
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin: 0 auto; }
         .menu-item { background: var(--btn-white); aspect-ratio: 1/1; border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
         .menu-item span { color: var(--text-dark); font-weight: bold; font-size: 18px; margin-top: 10px; }
@@ -58,10 +60,18 @@
             </div>
         </div>
 
-        <div class="voice-section">
-            <button id="voiceBtn" class="voice-btn-large">🎤</button>
-            <div style="font-weight: bold;">語音快速留言</div>
-            <div id="voiceStatus" style="font-size: 12px; margin-top: 5px; min-height: 18px;">點擊麥克風說話</div>
+        <div class="note-section" style="background: #333;">
+            <div style="font-weight: bold; margin-bottom: 8px; text-align: center; color: white;">💬 快速交代事項</div>
+            <input type="text" id="noteInput" class="note-input" placeholder="打字留言...">
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="send-note-btn" style="flex: 2; background: #2196F3; color: white;" onclick="sendNote()">送出文字</button>
+                
+                <button class="send-note-btn" style="flex: 1; background: #06C755; color: white;" 
+                    onclick="window.location.href='https://line.me/ti/p/~你的LINE_ID'">
+                    🎤 語音
+                </button>
+            </div>
         </div>
 
         <div class="menu-grid">
@@ -110,63 +120,24 @@
         const db = firebase.database();
         document.getElementById('actionDate').valueAsDate = new Date();
 
-        // --- 語音辨識優化區塊 ---
-        const voiceBtn = document.getElementById('voiceBtn');
-        const voiceStatus = document.getElementById('voiceStatus');
-        const recognition = ('webkitSpeechRecognition' in window) ? new webkitSpeechRecognition() : null;
+        // --- 留言功能 ---
+        function sendNote() {
+            const user = document.getElementById('userName').value;
+            const note = document.getElementById('noteInput').value;
+            if (!user) return alert('請先選擇人員！');
+            if (!note) return alert('請輸入留言內容！');
 
-        if (recognition) {
-            recognition.lang = 'zh-TW';
-            recognition.continuous = false; 
-            recognition.interimResults = false;
-
-            voiceBtn.onclick = () => {
-                const user = document.getElementById('userName').value;
-                if (!user) { alert('請先選擇員工姓名再說話！'); return; }
-                
-                if (voiceBtn.classList.contains('recording')) {
-                    recognition.stop();
-                    return;
-                }
-
-                try {
-                    recognition.start();
-                    voiceBtn.classList.add('recording');
-                    voiceStatus.innerText = "正在聽...請說話";
-                } catch (e) {
-                    console.error(e);
-                }
-            };
-
-            recognition.onresult = (e) => {
-                const result = e.results[0][0].transcript;
-                const user = document.getElementById('userName').value;
-                voiceStatus.innerText = "已送出：" + result;
-                
-                db.ref('voice_messages').push({
-                    user: user,
-                    message: result,
-                    time: new Date().toLocaleString()
-                });
-                alert('語音留言成功：' + result);
-            };
-
-            recognition.onend = () => {
-                voiceBtn.classList.remove('recording');
-                if (voiceStatus.innerText === "正在聽...請說話") {
-                    voiceStatus.innerText = "點擊麥克風說話";
-                }
-            };
-
-            recognition.onerror = (event) => {
-                voiceBtn.classList.remove('recording');
-                voiceStatus.innerText = "語音辨識出錯 (" + event.error + ")";
-            };
-        } else {
-            voiceStatus.innerText = "您的瀏覽器不支援語音辨識";
+            db.ref('voice_messages').push({
+                user: user,
+                message: note,
+                time: new Date().toLocaleString()
+            });
+            
+            document.getElementById('noteInput').value = '';
+            alert('留言已送出！');
         }
 
-        // --- 庫存與頁面邏輯 ---
+        // --- 庫存與頁面邏輯保持不變 ---
         const allItems = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "C夾", "Truss鐵板", "3米Truss後撐", "2米Truss後撐", "70Truss側拉", "50Truss側拉", "6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "墊箱", "12呎馬椅", "10呎馬椅", "9呎馬椅", "8尺馬椅", "6呎馬椅", "5呎馬椅", "3呎馬椅", "桌車", "椅車", "黑桌巾", "桌巾", "會議桌桌巾(紅布145*270)", "椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150", "3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(大紅)", "3米頂篷(紅)", "骨架300*300", "3米燈", "3米水溝", "屋型帳(紅)", "骨架300*600", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "骨架600*600", "6米水溝布", "6米圍布(白)", "6米邊", "6米腳", "6米雞爪", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "圓拱圍布(紅)", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "沙包"];
         const categories = { truss: allItems.filter(n => n.toLowerCase().includes('truss')), tent: allItems.filter(n => !n.toLowerCase().includes('truss')) };
 
@@ -203,4 +174,21 @@
 
         function showSummary() {
             const container = document.getElementById('summaryContainer');
-            container.
+            container.innerHTML = '載入中...';
+            db.ref('inventory').once('value', snap => {
+                container.innerHTML = '';
+                const items = snap.val() || {};
+                Object.keys(items).sort().forEach(name => {
+                    if(items[name] !== 0) {
+                        const row = document.createElement('div');
+                        row.className = 'summary-item';
+                        row.innerHTML = `<span>${name}</span><b>${items[name]}</b>`;
+                        container.appendChild(row);
+                    }
+                });
+            });
+            showPage('summaryPage');
+        }
+    </script>
+</body>
+</html>
