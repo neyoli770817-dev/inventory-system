@@ -1,0 +1,16 @@
+{
+  "name": "八毅庫存管理",
+  "short_name": "八毅庫存",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#4A0404",
+  "theme_color": "#4A0404",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/4099/4099276.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
