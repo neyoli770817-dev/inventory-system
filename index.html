@@ -28,7 +28,35 @@
         .send-note-btn { width: 100%; background: #FFFFFF; color: #2196F3; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
 
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin: 0 auto; }
-        .menu-item { background: var(--btn-white); aspect-ratio: 1/1; border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
+        /* 修改這部分，確保方塊不會被圖片撐破 */
+.menu-item { 
+    background: var(--btn-white); 
+    aspect-ratio: 1/1; 
+    border-radius: 15px; 
+    display: flex; 
+    flex-direction: column; 
+    justify-content: center; 
+    align-items: center; 
+    cursor: pointer; 
+    overflow: hidden; /* 關鍵：超過方塊的東西直接切掉，不讓它撐大 */
+    padding: 10px;    /* 給一點內邊距 */
+}
+
+/* 強制所有進來的圖片一律乖乖聽話 */
+.menu-item img {
+    width: 60px !important;  /* 強制固定寬度 */
+    height: 60px !important; /* 強制固定高度 */
+    object-fit: contain;     /* 保持比例不變形 */
+    flex-shrink: 0;          /* 防止被擠壓 */
+}
+
+.menu-item span { 
+    color: var(--text-dark); 
+    font-weight: bold; 
+    font-size: 16px; 
+    margin-top: 5px;
+    white-space: nowrap;     /* 防止文字換行擠到圖片 */
+}
         .menu-item span { color: var(--text-dark); font-weight: bold; font-size: 18px; margin-top: 10px; }
         .item-card { background: white; color: var(--text-dark); border-radius: 12px; padding: 15px; margin-bottom: 10px; }
         .qty-input-group { display: flex; align-items: center; gap: 10px; border-top: 1px solid #eee; padding-top: 10px; }
@@ -308,5 +336,6 @@
     </script>
 </body>
 </html>
+
 
 
