@@ -192,7 +192,12 @@
             categories[cat].forEach(name => {
                 const card = document.createElement('div');
                 card.className = 'item-card';
-                card.innerHTML = `<div style="display:flex; justify-content:space-between; color:#333"><b>${name}</b><span id="qty-${name}" style="font-weight:bold; color:#2196F3">0</span></div><div class="qty-input-group"><input type="number" id="input-${name}" class="input-num" placeholder="0"><button class="submit-btn" style="background:${currentMode==='入庫'?'#4CAF50':'#E91E63'}" onclick="submitChange('${name}')">確認${currentMode}</button></div>`;
+                card.innerHTML = `
+                <span style="font-size: 18px; font-weight: bold; color: #333;">${name}</span>
+                <span class="qty-text" style="font-size: 28px; font-weight: 900; color: ${qty < 0 ? '#E91E63' : '#2196F3'};">
+                    ${qty}
+                </span>
+            `;
                 container.appendChild(card);
                 db.ref('inventory/' + name).on('value', s => { 
                     const target = document.getElementById(`qty-${name}`);
@@ -264,4 +269,5 @@
     </script>
 </body>
 </html>
+
 
