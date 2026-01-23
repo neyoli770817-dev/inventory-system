@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>八毅庫存管理 4.0</title>
+    <title>八毅庫存管理 4.0 (防丟失版)</title>
     <link rel="apple-touch-icon" href="https://i.postimg.cc/rFfJ0TKX/八毅LOGO.png">
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         :root { --bg-wine: #4A0404; --btn-white: #FFFFFF; --text-dark: #333; }
         body { font-family: -apple-system, sans-serif; background-color: var(--bg-wine); color: white; margin: 0; padding: 10px; }
-        .page { display: none; padding-bottom: 50px; } .page.active { display: block; }
+        .page { display: none; padding-bottom: 80px; } .page.active { display: block; } /* 底部留白增加，避免按鈕被擋住 */
         .header { text-align: center; padding: 15px 0; background: var(--bg-wine); position: sticky; top: 0; z-index: 100; }
         
         .mode-container { display: flex; flex-direction: column; gap: 20px; align-items: center; justify-content: center; height: 80vh; }
@@ -40,6 +40,10 @@
         #summaryPage { background-color: var(--bg-wine); min-height: 100vh; }
         #summaryContainer { max-width: 600px; margin: 0 auto; padding: 15px; padding-bottom: 80px; background: transparent !important; }
         .qty-text { font-family: 'Arial Black', Gadget, sans-serif; letter-spacing: -1px; }
+
+        /* 新增：底部浮動工具列樣式 */
+        .batch-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #222; padding: 15px; z-index: 999; text-align: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.5); }
+        .batch-btn { width: 90%; max-width: 500px; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; border: none; color: white; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -61,8 +65,7 @@
         <div class="form-container">
             <div class="form-group">
                 <label>員工姓名</label>
-                <select id="userName" class="form-control">
-                    <option value="">請選擇人員...</option>
+                <select id="userName" class="form-control" onchange="saveUser(this.value)"> <option value="">請選擇人員...</option>
                     <option>邱正豪</option><option>邱宥瑋</option><option>廖恆光</option>
                     <option>林睿</option><option>董坤舜</option><option>黎光庭</option>
                 </select>
@@ -85,7 +88,7 @@
                 <img src="https://i.postimg.cc/GtDsw45n/OIP.png" class="truss-icon"><span>Truss類</span>
             </div>
             <div class="menu-item" onclick="openCategory('tent')">
-                <img src="https://i.postimg.cc/KYxJNfXy/3tent001.png" class="tants-icon"><span>帳篷類</span>
+                <div style="font-size:50px">⛺</div><span>帳篷類</span>
             </div>
             <div class="menu-item" onclick="showSummary()">
                 <div style="font-size:50px">📊</div><span>即時庫存看</span>
@@ -102,6 +105,10 @@
             <h2 id="categoryTitle" style="color:white; margin:0;"></h2>
         </div>
         <div id="itemContainer" style="max-width:600px; margin:0 auto; padding:10px;"></div>
+        
+        <div class="batch-bar">
+            <button id="batchBtn" class="batch-btn" onclick="submitBatch()">🚀 一鍵全部送出</button>
+        </div>
     </div>
 
     <div id="summaryPage" class="page">
@@ -126,16 +133,34 @@
         const db = firebase.database();
         let currentMode = '';
 
+        // --- 新增：讀取本地暫存 ---
+        let draft = JSON.parse(localStorage.getItem('bayi_draft')) || {};
+        let savedUser = localStorage.getItem('bayi_user') || "";
+
         function setMode(mode) {
             currentMode = mode;
             document.getElementById('modeTitle').innerText = (mode === '取用' ? '📤 現正執行：出庫' : '📥 現正執行：入庫');
             document.getElementById('actionDate').valueAsDate = new Date();
+            
+            // 自動帶入上次選擇的員工
+            if(savedUser) document.getElementById('userName').value = savedUser;
+
+            // 更新按鈕顏色
+            const batchBtn = document.getElementById('batchBtn');
+            batchBtn.style.background = (mode === '入庫' ? '#4CAF50' : '#E91E63');
+            batchBtn.innerText = (mode === '入庫' ? '📥 一鍵全部入庫' : '📤 一鍵全部出庫');
+
             showPage('homePage');
         }
 
         function showPage(id) { 
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
             document.getElementById(id).classList.add('active'); 
+        }
+
+        // --- 新增：記憶員工姓名 ---
+        function saveUser(name) {
+            localStorage.setItem('bayi_user', name);
         }
 
         function sendNote() {
@@ -177,13 +202,15 @@
             categories[cat].forEach(name => {
                 const card = document.createElement('div');
                 card.className = 'item-card';
+                // 修改：加入 input 的 value 屬性和 oninput 事件，來讀取和儲存暫存
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; color:#333; margin-bottom:10px;">
                         <b>${name}</b>
                         <span id="qty-${name}" style="font-weight:bold; color:#2196F3">載入中...</span>
                     </div>
                     <div class="qty-input-group">
-                        <input type="number" id="input-${name}" class="input-num" placeholder="0">
+                        <input type="number" id="input-${name}" class="input-num" placeholder="0" 
+                               value="${draft[name] || ''}" oninput="saveDraft('${name}', this.value)">
                         <button class="submit-btn" style="background:${currentMode==='入庫'?'#4CAF50':'#E91E63'}" onclick="submitChange('${name}')">確認${currentMode}</button>
                     </div>`;
                 container.appendChild(card);
@@ -195,6 +222,44 @@
             showPage('listPage');
         }
 
+        // --- 新增：儲存暫存功能 ---
+        function saveDraft(name, val) {
+            if (val && val !== "") draft[name] = val;
+            else delete draft[name];
+            localStorage.setItem('bayi_draft', JSON.stringify(draft));
+        }
+
+        // --- 新增：批次送出功能 ---
+        function submitBatch() {
+            const user = document.getElementById('userName').value;
+            if (!user) return alert('請先選擇人員！');
+            
+            // 找出目前有填寫數字的項目
+            const itemsToSubmit = Object.keys(draft);
+            if (itemsToSubmit.length === 0) return alert('你還沒輸入任何數量喔！');
+
+            if(confirm(`確定要一次送出這 ${itemsToSubmit.length} 項物料嗎？`)) {
+                const date = document.getElementById('actionDate').value;
+                
+                // 迴圈執行送出
+                itemsToSubmit.forEach(name => {
+                    const val = parseInt(draft[name]);
+                    if (!isNaN(val)) {
+                        let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
+                        db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
+                        db.ref('logs').push({ user, name, val: delta, purpose: currentMode, date, time: new Date().toLocaleString() });
+                    }
+                });
+
+                // 清空暫存與介面
+                draft = {};
+                localStorage.removeItem('bayi_draft');
+                document.querySelectorAll('.input-num').forEach(el => el.value = '');
+                
+                alert('🚀 全部送出成功！');
+            }
+        }
+
         function submitChange(name) {
             const user = document.getElementById('userName').value;
             const date = document.getElementById('actionDate').value;
@@ -203,7 +268,12 @@
             let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
             db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
             db.ref('logs').push({ user, name, val: delta, purpose: currentMode, date, time: new Date().toLocaleString() });
+            
+            // 送出後清空該格並移除暫存
             document.getElementById('input-' + name).value = '';
+            delete draft[name];
+            localStorage.setItem('bayi_draft', JSON.stringify(draft));
+            
             alert(currentMode + '成功');
         }
 
@@ -233,4 +303,3 @@
     </script>
 </body>
 </html>
-
