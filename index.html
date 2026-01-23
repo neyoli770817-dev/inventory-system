@@ -35,7 +35,11 @@
         .input-num { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 5px; text-align: center; font-size: 18px; }
         .submit-btn { flex: 1; background: #4CAF50; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; }
         .back-btn { background: none; border: 1px solid white; color: white; padding: 8px 12px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; }
-        .truss-icon { width: 70px; height: auto; }
+        .truss-icon, .tants-icon, .others-icon { 
+         width: 70px; 
+         height: 70px; 
+        object-fit: contain; /* 確保圖片縮放時不會變形 */
+         }
         
         #summaryPage { background-color: var(--bg-wine); min-height: 100vh; }
         #summaryContainer { max-width: 600px; margin: 0 auto; padding: 15px; padding-bottom: 80px; background: transparent !important; }
@@ -44,6 +48,7 @@
         /* 新增：底部浮動工具列樣式 */
         .batch-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #222; padding: 15px; z-index: 999; text-align: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.5); }
         .batch-btn { width: 90%; max-width: 500px; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; border: none; color: white; cursor: pointer; }
+        
     </style>
 </head>
 <body>
@@ -94,7 +99,7 @@
                 <div style="font-size:50px">📊</div><span>即時庫存看</span>
             </div>
             <div class="menu-item" onclick="openCategory('others')">
-                <img src="https://i.postimg.cc/T1pdFnDg/OIP-(1).png" class="tants-icon"><span>其它物料</span>
+                <img src="https://i.postimg.cc/T1pdFnDg/OIP-(1).png" class="others-icon"><span>其它物料</span>
             </div>
         </div>
     </div>
@@ -303,4 +308,5 @@
     </script>
 </body>
 </html>
+
 
