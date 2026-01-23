@@ -38,6 +38,30 @@
         .back-btn { background: none; border: 1px solid white; color: white; padding: 8px 12px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; }
         .truss-icon { width: 70px; height: auto; }
         .summary-item { border-bottom: 1px solid rgba(255,255,255,0.2); padding: 10px; display: flex; justify-content: space-between; }
+        /* 專屬即時庫存頁面的美化外觀 */
+#summaryPage {
+    background-color: var(--bg-wine); /* 統一酒紅背景 */
+    min-height: 100vh;
+}
+
+#summaryPage .header h1 {
+    font-size: 24px;
+    margin: 10px 0;
+}
+
+#summaryContainer {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 15px;
+    padding-bottom: 80px; /* 底部留白，避免被手機系統列遮到 */
+    background: transparent !important; /* 移除原本那個灰灰的透明底 */
+}
+
+/* 讓數量顯示更霸氣 */
+.qty-text {
+    font-family: 'Arial Black', Gadget, sans-serif; /* 讓數字更粗厚 */
+    letter-spacing: -1px;
+}
     </style>
 </head>
 <body>
@@ -194,22 +218,50 @@
         }
 
         function showSummary() {
-            const container = document.getElementById('summaryContainer');
-            container.innerHTML = '載入中...';
-            db.ref('inventory').once('value', snap => {
-                container.innerHTML = '';
-                const items = snap.val() || {};
-                Object.keys(items).sort().forEach(name => {
-                    if(items[name] !== 0) {
-                        const row = document.createElement('div');
-                        row.className = 'summary-item';
-                        row.innerHTML = `<span>${name}</span><b>${items[name]}</b>`;
-                        container.appendChild(row);
-                    }
-                });
-            });
-            showPage('summaryPage');
+    const container = document.getElementById('summaryContainer');
+    container.innerHTML = '<div style="text-align:center; padding:20px;">讀取庫存中...</div>';
+    
+    // 這裡我們直接從 Firebase 的 inventory 節點抓取最新總量
+    db.ref('inventory').once('value', snap => {
+        container.innerHTML = '';
+        const items = snap.val() || {};
+        
+        // 取得所有品項名稱並排序
+        const itemNames = Object.keys(items).sort();
+
+        if (itemNames.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:20px;">目前尚無庫存資料</div>';
+            return;
         }
+
+        itemNames.forEach(name => {
+            const qty = items[name];
+            // 建立美美的卡片
+            const card = document.createElement('div');
+            card.style.cssText = `
+                background: white;
+                color: #333;
+                margin-bottom: 12px;
+                padding: 20px;
+                border-radius: 15px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            `;
+            
+            card.innerHTML = `
+                <span style="font-size: 18px; font-weight: bold;">${name}</span>
+                <span style="font-size: 24px; font-weight: 900; color: ${qty < 0 ? '#E91E63' : '#2196F3'};">
+                    ${qty}
+                </span>
+            `;
+            container.appendChild(card);
+        });
+    });
+    showPage('summaryPage');
+}
     </script>
 </body>
 </html>
+
