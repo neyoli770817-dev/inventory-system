@@ -2,85 +2,45 @@
 <html lang="zh-TW">
 <head>
     <link rel="manifest" href="manifest.json">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#4A0404">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#4A0404">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>八毅庫存管理 4.0 (防丟失版)</title>
+    <title>八毅庫存管理 4.0</title>
     <link rel="apple-touch-icon" href="https://i.postimg.cc/XNCSk29x/八毅LOGO.jpg">
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         :root { --bg-wine: #4A0404; --btn-white: #FFFFFF; --text-dark: #333; }
         body { font-family: -apple-system, sans-serif; background-color: var(--bg-wine); color: white; margin: 0; padding: 10px; }
-        .page { display: none; padding-bottom: 80px; } .page.active { display: block; } /* 底部留白增加，避免按鈕被擋住 */
+        .page { display: none; padding-bottom: 80px; } .page.active { display: block; }
         .header { text-align: center; padding: 15px 0; background: var(--bg-wine); position: sticky; top: 0; z-index: 100; }
-        
         .mode-container { display: flex; flex-direction: column; gap: 20px; align-items: center; justify-content: center; height: 80vh; }
         .mode-btn { width: 80%; padding: 40px; border-radius: 20px; font-size: 30px; font-weight: bold; border: none; cursor: pointer; color: white; }
         .btn-out { background: #E91E63; } 
         .btn-in { background: #4CAF50; }  
-
         .form-container { max-width: 500px; margin: 0 auto 15px auto; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; }
         .form-group { margin-bottom: 10px; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 14px; }
         .form-control { width: 100%; padding: 10px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
-        
         .note-section { max-width: 500px; margin: 0 auto 20px auto; background: #333; padding: 15px; border-radius: 15px; }
         .note-input { width: 100%; padding: 12px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; }
         .send-note-btn { width: 100%; background: #FFFFFF; color: #2196F3; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
-
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin: 0 auto; }
-        /* 修改這部分，確保方塊不會被圖片撐破 */
-.menu-item { 
-    background: var(--btn-white); 
-    aspect-ratio: 1/1; 
-    border-radius: 15px; 
-    display: flex; 
-    flex-direction: column; 
-    justify-content: center; 
-    align-items: center; 
-    cursor: pointer; 
-    overflow: hidden; /* 關鍵：超過方塊的東西直接切掉，不讓它撐大 */
-    padding: 10px;    /* 給一點內邊距 */
-}
-
-/* 強制所有進來的圖片一律乖乖聽話 */
-.menu-item img {
-    width: 60px !important;  /* 強制固定寬度 */
-    height: 60px !important; /* 強制固定高度 */
-    object-fit: contain;     /* 保持比例不變形 */
-    flex-shrink: 0;          /* 防止被擠壓 */
-}
-
-.menu-item span { 
-    color: var(--text-dark); 
-    font-weight: bold; 
-    font-size: 16px; 
-    margin-top: 5px;
-    white-space: nowrap;     /* 防止文字換行擠到圖片 */
-}
-        .menu-item span { color: var(--text-dark); font-weight: bold; font-size: 18px; margin-top: 10px; }
+        .menu-item { background: var(--btn-white); aspect-ratio: 1/1; border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; overflow: hidden; padding: 10px; }
+        .menu-item img { width: 60px !important; height: 60px !important; object-fit: contain; flex-shrink: 0; }
+        .menu-item span { color: var(--text-dark); font-weight: bold; font-size: 16px; margin-top: 5px; white-space: nowrap; }
         .item-card { background: white; color: var(--text-dark); border-radius: 12px; padding: 15px; margin-bottom: 10px; }
         .qty-input-group { display: flex; align-items: center; gap: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         .input-num { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 5px; text-align: center; font-size: 18px; }
         .submit-btn { flex: 1; background: #4CAF50; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; }
         .back-btn { background: none; border: 1px solid white; color: white; padding: 8px 12px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; }
-        .truss-icon, .tants-icon, .others-icon { 
-         width: 70px; 
-         height: 70px; 
-        object-fit: contain; /* 確保圖片縮放時不會變形 */
-         }
-        
         #summaryPage { background-color: var(--bg-wine); min-height: 100vh; }
         #summaryContainer { max-width: 600px; margin: 0 auto; padding: 15px; padding-bottom: 80px; background: transparent !important; }
         .qty-text { font-family: 'Arial Black', Gadget, sans-serif; letter-spacing: -1px; }
-
-        /* 新增：底部浮動工具列樣式 */
         .batch-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #222; padding: 15px; z-index: 999; text-align: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.5); }
         .batch-btn { width: 90%; max-width: 500px; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; border: none; color: white; cursor: pointer; }
-        
     </style>
 </head>
 <body>
@@ -102,7 +62,8 @@
         <div class="form-container">
             <div class="form-group">
                 <label>員工姓名</label>
-                <select id="userName" class="form-control" onchange="saveUser(this.value)"> <option value="">請選擇人員...</option>
+                <select id="userName" class="form-control" onchange="saveUser(this.value)"> 
+                    <option value="">請選擇人員...</option>
                     <option>邱正豪</option><option>邱宥瑋</option><option>廖恆光</option>
                     <option>林睿</option><option>董坤舜</option><option>黎光庭</option>
                 </select>
@@ -142,7 +103,6 @@
             <h2 id="categoryTitle" style="color:white; margin:0;"></h2>
         </div>
         <div id="itemContainer" style="max-width:600px; margin:0 auto; padding:10px;"></div>
-        
         <div class="batch-bar">
             <button id="batchBtn" class="batch-btn" onclick="submitBatch()">🚀 一鍵全部送出</button>
         </div>
@@ -170,7 +130,6 @@
         const db = firebase.database();
         let currentMode = '';
 
-        // --- 新增：讀取本地暫存 ---
         let draft = JSON.parse(localStorage.getItem('bayi_draft')) || {};
         let savedUser = localStorage.getItem('bayi_user') || "";
 
@@ -178,15 +137,10 @@
             currentMode = mode;
             document.getElementById('modeTitle').innerText = (mode === '取用' ? '📤 現正執行：出庫' : '📥 現正執行：入庫');
             document.getElementById('actionDate').valueAsDate = new Date();
-            
-            // 自動帶入上次選擇的員工
             if(savedUser) document.getElementById('userName').value = savedUser;
-
-            // 更新按鈕顏色
             const batchBtn = document.getElementById('batchBtn');
             batchBtn.style.background = (mode === '入庫' ? '#4CAF50' : '#E91E63');
             batchBtn.innerText = (mode === '入庫' ? '📥 一鍵全部入庫' : '📤 一鍵全部出庫');
-
             showPage('homePage');
         }
 
@@ -195,10 +149,7 @@
             document.getElementById(id).classList.add('active'); 
         }
 
-        // --- 新增：記憶員工姓名 ---
-        function saveUser(name) {
-            localStorage.setItem('bayi_user', name);
-        }
+        function saveUser(name) { localStorage.setItem('bayi_user', name); }
 
         function sendNote() {
             const user = document.getElementById('userName').value;
@@ -231,15 +182,12 @@
             let title = '📦 其他物料';
             if(cat === 'truss') title = '🏗️ Truss類';
             else if(cat === 'tent') title = '⛺ 帳篷類';
-            
             document.getElementById('categoryTitle').innerText = title;
             const container = document.getElementById('itemContainer');
             container.innerHTML = '';
-            
             categories[cat].forEach(name => {
                 const card = document.createElement('div');
                 card.className = 'item-card';
-                // 修改：加入 input 的 value 屬性和 oninput 事件，來讀取和儲存暫存
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; color:#333; margin-bottom:10px;">
                         <b>${name}</b>
@@ -259,26 +207,19 @@
             showPage('listPage');
         }
 
-        // --- 新增：儲存暫存功能 ---
         function saveDraft(name, val) {
             if (val && val !== "") draft[name] = val;
             else delete draft[name];
             localStorage.setItem('bayi_draft', JSON.stringify(draft));
         }
 
-        // --- 新增：批次送出功能 ---
         function submitBatch() {
             const user = document.getElementById('userName').value;
             if (!user) return alert('請先選擇人員！');
-            
-            // 找出目前有填寫數字的項目
             const itemsToSubmit = Object.keys(draft);
             if (itemsToSubmit.length === 0) return alert('你還沒輸入任何數量喔！');
-
             if(confirm(`確定要一次送出這 ${itemsToSubmit.length} 項物料嗎？`)) {
                 const date = document.getElementById('actionDate').value;
-                
-                // 迴圈執行送出
                 itemsToSubmit.forEach(name => {
                     const val = parseInt(draft[name]);
                     if (!isNaN(val)) {
@@ -287,12 +228,9 @@
                         db.ref('logs').push({ user, name, val: delta, purpose: currentMode, date, time: new Date().toLocaleString() });
                     }
                 });
-
-                // 清空暫存與介面
                 draft = {};
                 localStorage.removeItem('bayi_draft');
                 document.querySelectorAll('.input-num').forEach(el => el.value = '');
-                
                 alert('🚀 全部送出成功！');
             }
         }
@@ -305,12 +243,9 @@
             let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
             db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
             db.ref('logs').push({ user, name, val: delta, purpose: currentMode, date, time: new Date().toLocaleString() });
-            
-            // 送出後清空該格並移除暫存
             document.getElementById('input-' + name).value = '';
             delete draft[name];
             localStorage.setItem('bayi_draft', JSON.stringify(draft));
-            
             alert(currentMode + '成功');
         }
 
@@ -337,17 +272,15 @@
             });
             showPage('summaryPage');
         }
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js');
-  }
-</script>
-</script>
+
+        // PWA 註冊
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                .then(reg => console.log('服務登記成功'))
+                .catch(err => console.log('服務登記失敗', err));
+            });
+        }
+    </script>
 </body>
 </html>
-
-
-
-
-
-
-
