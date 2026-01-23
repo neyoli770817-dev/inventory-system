@@ -1,13 +1,13 @@
 {
-  "name": "八毅庫存管理",
+  "name": "八毅庫存系統",
   "short_name": "八毅庫存",
   "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#4A0404",
+  "background_color": "#ffffff",
   "theme_color": "#4A0404",
   "icons": [
     {
-      "src":"https://i.postimg.cc/rFfJ0TKX/ba-yi-LOGO.png",
+      "src": "https://i.postimg.cc/XNCSk29x/八毅LOGO.jpg",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
