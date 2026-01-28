@@ -69,6 +69,10 @@
                 </select>
             </div>
             <div class="form-group">
+    <label>場次名稱 / 備註</label>
+    <input type="text" id="eventTag" class="form-control" placeholder="例如：大安場、廠商借用">
+</div>
+            <div class="form-group">
                 <label>日期</label>
                 <input type="date" id="actionDate" class="form-control">
             </div>
@@ -295,7 +299,42 @@
                 .catch(err => console.log('服務登記失敗', err));
             });
         }
+    function submitBatch() {
+        const user = document.getElementById('userName').value;
+        const eventTag = document.getElementById('eventTag').value || "未註記場次";
+        const items = Object.keys(draft);
+        
+        if (!user || items.length === 0) return alert('請先選擇人員並輸入數量');
+        
+        if(confirm('確定要批次更新這 ' + items.length + ' 項物料嗎？')) {
+            const date = document.getElementById('actionDate').value;
+            items.forEach(name => {
+                let val = parseInt(draft[name]);
+                // 自動判斷：如果是出庫模式就轉負數，入庫就轉正數
+                let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
+                
+                // 1. 更新庫存總量
+                db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
+                
+                // 2. 寫入日誌 (加入場次資訊)
+                db.ref('logs').push({
+                    user: user,
+                    event: eventTag,
+                    name: name,
+                    val: delta,
+                    purpose: currentMode,
+                    date: date,
+                    time: new Date().toLocaleString()
+                });
+            });
+            draft = {}; 
+            localStorage.removeItem('bayi_draft'); 
+            alert('批次更新完成！');
+            location.reload();
+        }
+    }
     </script>
 </body>
 </html>
+
 
