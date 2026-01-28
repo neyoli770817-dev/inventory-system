@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#4A0404">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>八毅庫存管理 4.0</title>
+    <title>八毅庫存管理系統</title>
     <link rel="apple-touch-icon" href="https://i.postimg.cc/XNCSk29x/八毅LOGO.jpg">
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -18,29 +18,25 @@
         .header { text-align: center; padding: 15px 0; background: var(--bg-wine); position: sticky; top: 0; z-index: 100; }
         .mode-container { display: flex; flex-direction: column; gap: 20px; align-items: center; justify-content: center; height: 80vh; }
         .mode-btn { width: 80%; padding: 40px; border-radius: 20px; font-size: 30px; font-weight: bold; border: none; cursor: pointer; color: white; }
-        .btn-out { background: #E91E63; } 
-        .btn-in { background: #4CAF50; }  
+        .btn-out { background: #E91E63; } .btn-in { background: #4CAF50; }  
         .form-container { max-width: 500px; margin: 0 auto 15px auto; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; }
-        .form-group { margin-bottom: 10px; }
-        .form-group label { display: block; margin-bottom: 5px; font-size: 14px; }
+        .form-group { margin-bottom: 10px; } .form-group label { display: block; margin-bottom: 5px; font-size: 14px; }
         .form-control { width: 100%; padding: 10px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
         .note-section { max-width: 500px; margin: 0 auto 20px auto; background: #333; padding: 15px; border-radius: 15px; }
         .note-input { width: 100%; padding: 12px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; }
-        .send-note-btn { width: 100%; background: #FFFFFF; color: #2196F3; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        .send-note-btn { width: 100%; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin: 0 auto; }
-        .menu-item { background: var(--btn-white); aspect-ratio: 1/1; border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; overflow: hidden; padding: 10px; }
-        .menu-item img { width: 60px !important; height: 60px !important; object-fit: contain; flex-shrink: 0; }
-        .menu-item span { color: var(--text-dark); font-weight: bold; font-size: 16px; margin-top: 5px; white-space: nowrap; }
+        .menu-item { background: var(--btn-white); aspect-ratio: 1/1; border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; padding: 10px; }
+        .menu-item img { width: 60px !important; height: 60px !important; object-fit: contain; }
+        .menu-item span { color: var(--text-dark); font-weight: bold; font-size: 16px; margin-top: 5px; }
         .item-card { background: white; color: var(--text-dark); border-radius: 12px; padding: 15px; margin-bottom: 10px; }
         .qty-input-group { display: flex; align-items: center; gap: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         .input-num { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 5px; text-align: center; font-size: 18px; }
-        .submit-btn { flex: 1; background: #4CAF50; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .submit-btn { flex: 1; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; }
         .back-btn { background: none; border: 1px solid white; color: white; padding: 8px 12px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; }
-        #summaryPage { background-color: var(--bg-wine); min-height: 100vh; }
-        #summaryContainer { max-width: 600px; margin: 0 auto; padding: 15px; padding-bottom: 80px; background: transparent !important; }
-        .qty-text { font-family: 'Arial Black', Gadget, sans-serif; letter-spacing: -1px; }
-        .batch-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #222; padding: 15px; z-index: 999; text-align: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.5); }
+        .batch-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #222; padding: 15px; z-index: 999; text-align: center; }
         .batch-btn { width: 90%; max-width: 500px; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; border: none; color: white; cursor: pointer; }
+        .summary-group-title { margin: 20px 0 10px 5px; color: #FFD700; font-size: 18px; font-weight: bold; border-left: 4px solid #FFD700; padding-left: 10px; }
     </style>
 </head>
 <body>
@@ -69,34 +65,26 @@
                 </select>
             </div>
             <div class="form-group">
-    <label>場次名稱 / 備註</label>
-    <input type="text" id="eventTag" class="form-control" placeholder="例如：大安場、廠商借用">
-</div>
-            <div class="form-group">
                 <label>日期</label>
                 <input type="date" id="actionDate" class="form-control">
             </div>
-        </div>
-        <div class="note-section">
-            <div style="font-weight: bold; margin-bottom: 8px; text-align: center; color: white;">💬 快速交代事項</div>
-            <input type="text" id="noteInput" class="note-input" placeholder="打字留言...">
-            <div style="display: flex; gap: 10px;">
-                <button class="send-note-btn" style="flex: 2; background: #2196F3; color: white;" onclick="sendNote()">送出文字</button>
-                <button class="send-note-btn" style="flex: 1; background: #06C755; color: white;" onclick="goToLine()">🎤 語音</button>
+            <div class="form-group">
+                <label>場次名稱 / 備註</label>
+                <input type="text" id="eventTag" class="form-control" placeholder="輸入場次或借用對象">
             </div>
         </div>
         <div class="menu-grid">
             <div class="menu-item" onclick="openCategory('truss')">
-                <img src="https://i.postimg.cc/GtDsw45n/OIP.png" class="truss-icon"><span>Truss類</span>
+                <img src="https://i.postimg.cc/GtDsw45n/OIP.png"><span>Truss類</span>
             </div>
             <div class="menu-item" onclick="openCategory('tent')">
-                 <img src="https://i.postimg.cc/KYxJNfXy/3tent001.png" class="tants-icon"><span>帳篷類</span>
+                 <img src="https://i.postimg.cc/KYxJNfXy/3tent001.png"><span>帳篷類</span>
             </div>
             <div class="menu-item" onclick="showSummary()">
                 <div style="font-size:50px">📊</div><span>即時庫存看</span>
             </div>
             <div class="menu-item" onclick="openCategory('others')">
-                <img src="https://i.postimg.cc/T1pdFnDg/OIP-(1).png" class="others-icon"><span>其它物料</span>
+                <img src="https://i.postimg.cc/T1pdFnDg/OIP-(1).png"><span>其它物料</span>
             </div>
         </div>
     </div>
@@ -117,7 +105,7 @@
             <button class="back-btn" onclick="location.reload()">← 回首頁</button>
             <h1>即時庫存總量</h1>
         </div>
-        <div id="summaryContainer"></div>
+        <div id="summaryContainer" style="max-width:600px; margin:0 auto; padding:15px; padding-bottom:80px;"></div>
     </div>
 
     <script>
@@ -133,13 +121,26 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         let currentMode = '';
-
         let draft = JSON.parse(localStorage.getItem('bayi_draft')) || {};
         let savedUser = localStorage.getItem('bayi_user') || "";
 
+        // 更新後的品項清單 (已刪除桌車、椅車、桌巾)
+        const allItems = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "C夾", "Truss鐵板", "3米Truss後撐", "2米Truss後撐", "70Truss側拉", "50Truss側拉", "6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "墊箱", "12呎馬椅", "10呎馬椅", "9呎馬椅", "8尺馬椅", "6呎馬椅", "5呎馬椅", "3呎馬椅", "黑桌巾", "會議桌桌巾(紅布145*270)", "椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150", "3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(大紅)", "3米頂篷(紅)", "骨架300*300", "3米燈", "3米水溝", "屋型帳(紅)", "骨架300*600", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "骨架600*600", "6米水溝布", "6米圍布(白)", "6米邊", "6米腳", "6米雞爪", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "圓拱圍布(紅)", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "沙包"];
+        
+        // 更新後的分類邏輯 (已移動 3米燈、6米邊、6米腳、6米雞爪)
+        const categories = { 
+            truss: allItems.filter(n => n.toLowerCase().includes('truss') || n.includes('轉接頭') || n.includes('C夾') || n.includes('鐵板') || n.includes('側拉') || n.includes('後撐')),
+            tent: allItems.filter(n => n.includes('帳') || n.includes('篷') || n.includes('棚') || n.includes('圍布') || n.includes('水溝') || n.includes('骨架') || n.includes('營釘') || n.includes('頭圍') || n.includes('拱') || n.includes('燈') || n.includes('邊') || n.includes('腳') || n.includes('雞爪')),
+            others: allItems.filter(n => {
+                const isTruss = n.toLowerCase().includes('truss') || n.includes('轉接頭') || n.includes('C夾') || n.includes('鐵板') || n.includes('側拉') || n.includes('後撐');
+                const isTent = n.includes('帳') || n.includes('篷') || n.includes('棚') || n.includes('圍布') || n.includes('水溝') || n.includes('骨架') || n.includes('營釘') || n.includes('頭圍') || n.includes('拱') || n.includes('燈') || n.includes('邊') || n.includes('腳') || n.includes('雞爪');
+                return !isTruss && !isTent;
+            })
+        };
+
         function setMode(mode) {
             currentMode = mode;
-            document.getElementById('modeTitle').innerText = (mode === '取用' ? '📤 現正執行：出庫' : '📥 現正執行：入庫');
+            document.getElementById('modeTitle').innerText = (mode === '取用' ? '📤 出庫模式' : '📥 入庫模式');
             document.getElementById('actionDate').valueAsDate = new Date();
             if(savedUser) document.getElementById('userName').value = savedUser;
             const batchBtn = document.getElementById('batchBtn');
@@ -155,38 +156,8 @@
 
         function saveUser(name) { localStorage.setItem('bayi_user', name); }
 
-        function sendNote() {
-            const user = document.getElementById('userName').value;
-            const note = document.getElementById('noteInput').value;
-            if (!user || !note) return alert('請先選擇人員並輸入留言！');
-            db.ref('voice_messages').push({ user, message: note, mode: currentMode, time: new Date().toLocaleString() });
-            document.getElementById('noteInput').value = '';
-            alert('留言已送出！');
-        }
-
-        function goToLine() {
-            const user = document.getElementById('userName').value;
-            if (!user) return alert('請先選擇員工姓名！');
-            window.location.href = 'https://line.me/ti/p/~noc770817';
-        }
-
-        const allItems = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "C夾", "Truss鐵板", "3米Truss後撐", "2米Truss後撐", "70Truss側拉", "50Truss側拉", "6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "墊箱", "12呎馬椅", "10呎馬椅", "9呎馬椅", "8尺馬椅", "6呎馬椅", "5呎馬椅", "3呎馬椅", "桌車", "椅車", "黑桌巾", "桌巾", "會議桌桌巾(紅布145*270)", "椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150", "3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(大紅)", "3米頂篷(紅)", "骨架300*300", "3米燈", "3米水溝", "屋型帳(紅)", "骨架300*600", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "骨架600*600", "6米水溝布", "6米圍布(白)", "6米邊", "6米腳", "6米雞爪", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "圓拱圍布(紅)", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "沙包"];
-        
-        const categories = { 
-            truss: allItems.filter(n => n.toLowerCase().includes('truss') || n.includes('轉接頭') || n.includes('C夾') || n.includes('鐵板') || n.includes('側拉') || n.includes('後撐')),
-            tent: allItems.filter(n => n.includes('帳') || n.includes('篷') || n.includes('棚') || n.includes('圍布') || n.includes('水溝') || n.includes('骨架') || n.includes('營釘') || n.includes('頭圍') || n.includes('拱')),
-            others: allItems.filter(n => {
-                const isTruss = n.toLowerCase().includes('truss') || n.includes('轉接頭') || n.includes('C夾') || n.includes('鐵板') || n.includes('側拉') || n.includes('後撐');
-                const isTent = n.includes('帳') || n.includes('篷') || n.includes('棚') || n.includes('圍布') || n.includes('水溝') || n.includes('骨架') || n.includes('營釘') || n.includes('頭圍') || n.includes('拱');
-                return !isTruss && !isTent;
-            })
-        };
-
         function openCategory(cat) {
-            let title = '📦 其他物料';
-            if(cat === 'truss') title = '🏗️ Truss類';
-            else if(cat === 'tent') title = '⛺ 帳篷類';
-            document.getElementById('categoryTitle').innerText = title;
+            document.getElementById('categoryTitle').innerText = (cat === 'truss' ? '🏗️ Truss類' : cat === 'tent' ? '⛺ 帳篷類' : '📦 其它物料');
             const container = document.getElementById('itemContainer');
             container.innerHTML = '';
             categories[cat].forEach(name => {
@@ -194,147 +165,87 @@
                 card.className = 'item-card';
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; color:#333; margin-bottom:10px;">
-                        <b>${name}</b>
-                        <span id="qty-${name}" style="font-weight:bold; color:#2196F3">載入中...</span>
+                        <b>${name}</b><span id="qty-${name}">...</span>
                     </div>
                     <div class="qty-input-group">
-                        <input type="number" id="input-${name}" class="input-num" placeholder="0" 
-                               value="${draft[name] || ''}" oninput="saveDraft('${name}', this.value)">
-                        <button class="submit-btn" style="background:${currentMode==='入庫'?'#4CAF50':'#E91E63'}" onclick="submitChange('${name}')">確認${currentMode}</button>
+                        <input type="number" id="input-${name}" class="input-num" value="${draft[name] || ''}" oninput="saveDraft('${name}', this.value)">
+                        <button class="submit-btn" style="background:${currentMode==='入庫'?'#4CAF50':'#E91E63'}" onclick="submitChange('${name}')">確認</button>
                     </div>`;
                 container.appendChild(card);
                 db.ref('inventory/' + name).on('value', s => { 
-                    const target = document.getElementById(`qty-${name}`);
-                    if (target) target.innerText = s.val() || 0; 
+                    const qtyElem = document.getElementById(`qty-${name}`);
+                    if(qtyElem) qtyElem.innerText = s.val() || 0; 
                 });
             });
             showPage('listPage');
         }
 
         function saveDraft(name, val) {
-            if (val && val !== "") draft[name] = val;
-            else delete draft[name];
+            if (val) draft[name] = val; else delete draft[name];
             localStorage.setItem('bayi_draft', JSON.stringify(draft));
         }
 
         function submitBatch() {
             const user = document.getElementById('userName').value;
-            if (!user) return alert('請先選擇人員！');
-            const itemsToSubmit = Object.keys(draft);
-            if (itemsToSubmit.length === 0) return alert('你還沒輸入任何數量喔！');
-            if(confirm(`確定要一次送出這 ${itemsToSubmit.length} 項物料嗎？`)) {
+            const eventTag = document.getElementById('eventTag').value || "未註記場次";
+            const items = Object.keys(draft);
+            if (!user || items.length === 0) return alert('請先選擇人員並輸入數量');
+            if(confirm('確定送出更新？')) {
                 const date = document.getElementById('actionDate').value;
-                itemsToSubmit.forEach(name => {
-                    const val = parseInt(draft[name]);
-                    if (!isNaN(val)) {
-                        let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
-                        db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
-                        db.ref('logs').push({ user, name, val: delta, purpose: currentMode, date, time: new Date().toLocaleString() });
-                    }
+                items.forEach(name => {
+                    let val = parseInt(draft[name]);
+                    let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
+                    db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
+                    db.ref('logs').push({ user, event: eventTag, name, val: delta, purpose: currentMode, date, time: new Date().toLocaleString() });
                 });
-                draft = {};
-                localStorage.removeItem('bayi_draft');
-                document.querySelectorAll('.input-num').forEach(el => el.value = '');
-                alert('🚀 全部送出成功！');
+                draft = {}; localStorage.removeItem('bayi_draft'); location.reload();
             }
         }
 
         function submitChange(name) {
             const user = document.getElementById('userName').value;
-            const date = document.getElementById('actionDate').value;
+            const eventTag = document.getElementById('eventTag').value || "未註記場次";
             const val = parseInt(document.getElementById('input-' + name).value);
-            if (!user || isNaN(val)) return alert('請輸入完整資訊');
+            if (!user || isNaN(val)) return alert('資訊不全');
             let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
             db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
-            db.ref('logs').push({ user, name, val: delta, purpose: currentMode, date, time: new Date().toLocaleString() });
-            document.getElementById('input-' + name).value = '';
-            delete draft[name];
-            localStorage.setItem('bayi_draft', JSON.stringify(draft));
-            alert(currentMode + '成功');
+            db.ref('logs').push({ user, event: eventTag, name, val: delta, purpose: currentMode, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
+            document.getElementById('input-' + name).value = ''; delete draft[name]; alert('成功');
         }
 
-       function showSummary() {
-    const container = document.getElementById('summaryContainer');
-    container.innerHTML = '<div style="text-align:center; padding:20px;">讀取庫存中...</div>';
-    
-    db.ref('inventory').once('value', snap => {
-        container.innerHTML = '';
-        const data = snap.val() || {};
-        
-        // 定義顯示順序與分組
-        const groups = [
-            { title: "🏗️ Truss 類別", items: categories.truss },
-            { title: "⛺ 帳篷與周邊", items: categories.tent },
-            { title: "📦 其它物料", items: categories.others }
-        ];
-
-        groups.forEach(group => {
-            // 建立分組標題
-            const groupHeader = document.createElement('div');
-            groupHeader.style.cssText = "margin: 20px 0 10px 5px; color: #FFD700; font-size: 18px; font-weight: bold; border-left: 4px solid #FFD700; padding-left: 10px;";
-            groupHeader.innerText = group.title;
-            container.appendChild(groupHeader);
-
-            // 過濾並顯示該組有的東西
-            group.items.forEach(name => {
-                if (data[name] !== undefined) {
-                    const qty = data[name];
-                    const card = document.createElement('div');
-                    card.style.cssText = `background:white; color:#333; margin-bottom:8px; padding:15px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.2);`;
-                    card.innerHTML = `
-                        <span style="font-size: 16px; font-weight: bold;">${name}</span>
-                        <span class="qty-text" style="font-size: 24px; font-weight: 900; color: ${qty < 0 ? '#E91E63' : '#2196F3'};">${qty}</span>`;
-                    container.appendChild(card);
-                }
-            });
-        });
-    });
-    showPage('summaryPage');
-}
-        // PWA 註冊
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js')
-                .then(reg => console.log('服務登記成功'))
-                .catch(err => console.log('服務登記失敗', err));
-            });
-        }
-    function submitBatch() {
-        const user = document.getElementById('userName').value;
-        const eventTag = document.getElementById('eventTag').value || "未註記場次";
-        const items = Object.keys(draft);
-        
-        if (!user || items.length === 0) return alert('請先選擇人員並輸入數量');
-        
-        if(confirm('確定要批次更新這 ' + items.length + ' 項物料嗎？')) {
-            const date = document.getElementById('actionDate').value;
-            items.forEach(name => {
-                let val = parseInt(draft[name]);
-                // 自動判斷：如果是出庫模式就轉負數，入庫就轉正數
-                let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
-                
-                // 1. 更新庫存總量
-                db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
-                
-                // 2. 寫入日誌 (加入場次資訊)
-                db.ref('logs').push({
-                    user: user,
-                    event: eventTag,
-                    name: name,
-                    val: delta,
-                    purpose: currentMode,
-                    date: date,
-                    time: new Date().toLocaleString()
+        function showSummary() {
+            const container = document.getElementById('summaryContainer');
+            container.innerHTML = '<div style="text-align:center; padding:20px;">讀取庫存中...</div>';
+            db.ref('inventory').once('value', snap => {
+                container.innerHTML = '';
+                const data = snap.val() || {};
+                const groups = [
+                    { title: "🏗️ Truss 類別", items: categories.truss },
+                    { title: "⛺ 帳篷與周邊", items: categories.tent },
+                    { title: "📦 其它物料", items: categories.others }
+                ];
+                groups.forEach(group => {
+                    const titleDiv = document.createElement('div');
+                    titleDiv.className = 'summary-group-title';
+                    titleDiv.innerText = group.title;
+                    container.appendChild(titleDiv);
+                    group.items.forEach(name => {
+                        if (data[name] !== undefined) {
+                            const qty = data[name];
+                            const card = document.createElement('div');
+                            card.style.cssText = `background:white; color:#333; margin-bottom:8px; padding:15px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.2);`;
+                            card.innerHTML = `<b>${name}</b><span style="font-size:24px; font-weight:900; color:${qty<0?'#E91E63':'#2196F3'};">${qty}</span>`;
+                            container.appendChild(card);
+                        }
+                    });
                 });
             });
-            draft = {}; 
-            localStorage.removeItem('bayi_draft'); 
-            alert('批次更新完成！');
-            location.reload();
+            showPage('summaryPage');
         }
-    }
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./service-worker.js').then(() => console.log('SW OK'));
+        }
     </script>
 </body>
 </html>
-
-
