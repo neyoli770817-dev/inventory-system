@@ -106,6 +106,9 @@
         const trussMain = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss"];
         const tentMainItems = ["3米快速帳(紅白)", "3米快速帳(白)", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)"];
         const tentFrames = ["骨架300*300", "骨架300*600", "骨架600*600"];
+        
+        // 其它物料分區
+        const stageItems = ["6x6舞台板", "3x6舞台板", "C夾", "墊箱"];
 
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) { leaveTime = Date.now(); } 
@@ -145,8 +148,14 @@
                 frameItems.forEach(name => container.appendChild(createItemCard(name)));
                 container.innerHTML += '<div class="sub-group-title">🛠️ 帳篷配件區</div>';
                 accessoryItems.forEach(name => container.appendChild(createItemCard(name)));
-            } else {
-                listToDisplay.forEach(name => container.appendChild(createItemCard(name)));
+            } 
+            else if (cat === 'others') {
+                const stages = listToDisplay.filter(n => stageItems.includes(n));
+                const accessories = listToDisplay.filter(n => !stageItems.includes(n));
+                container.innerHTML += '<div class="sub-group-title">🎭 舞台區</div>';
+                stages.forEach(name => container.appendChild(createItemCard(name)));
+                container.innerHTML += '<div class="sub-group-title">🛠️ 活動配件</div>';
+                accessories.forEach(name => container.appendChild(createItemCard(name)));
             }
             showPage('listPage');
         }
