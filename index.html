@@ -259,7 +259,35 @@
             });
             showPage('summaryPage');
         }
+
+        // --- 萬用搬家小工具 (跑完後請刪除) ---
+function fixData() {
+    // 格式： '舊名字': '新名字'
+    const moveList = {
+        '椅套': '香檳金椅套',
+        '舊的品項名': '新的品項名' 
+    };
+
+    Object.keys(moveList).forEach(oldKey => {
+        const newKey = moveList[oldKey];
+        db.ref('inventory/' + oldKey).once('value', snap => {
+            if (snap.exists()) {
+                const count = snap.val();
+                // 1. 把數量搬到新名字
+                db.ref('inventory/' + newKey).set(count);
+                // 2. 刪除舊名字
+                db.ref('inventory/' + oldKey).remove();
+                console.log(`已將 ${oldKey} 的數量 (${count}) 搬移至 ${newKey}`);
+            }
+        });
+    });
+    alert('數據搬移完成！請重新整理並刪除此段維護代碼。');
+}
+
+// 暫時解除註解來執行：
+// setTimeout(fixData, 2000);
     </script>
 </body>
 </html>
+
 
