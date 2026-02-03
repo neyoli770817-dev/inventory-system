@@ -22,9 +22,6 @@
         .form-container { max-width: 500px; margin: 0 auto 15px auto; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; }
         .form-group { margin-bottom: 10px; } .form-group label { display: block; margin-bottom: 5px; font-size: 14px; }
         .form-control { width: 100%; padding: 10px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
-        .note-section { max-width: 500px; margin: 0 auto 20px auto; background: #333; padding: 15px; border-radius: 15px; }
-        .note-input { width: 100%; padding: 12px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; }
-        .send-note-btn { width: 100%; border: none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin: 0 auto; }
         .menu-item { background: var(--btn-white); aspect-ratio: 1/1; border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; padding: 10px; }
         .menu-item img { width: 60px !important; height: 60px !important; object-fit: contain; }
@@ -37,8 +34,8 @@
         .batch-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #222; padding: 15px; z-index: 999; text-align: center; }
         .batch-btn { width: 90%; max-width: 500px; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; border: none; color: white; cursor: pointer; }
         .summary-group-title { margin: 20px 0 10px 5px; color: #FFD700; font-size: 18px; font-weight: bold; border-left: 4px solid #FFD700; padding-left: 10px; }
-        /* 新增：帳篷類內部的小標題樣式 */
         .tent-sub-title { width: 100%; color: #FFD700; padding: 10px 0; margin-top: 10px; font-weight: bold; font-size: 18px; border-bottom: 1px dashed #FFD700; }
+        .tent-spacer { height: 20px; width: 100%; }
     </style>
 </head>
 <body>
@@ -53,94 +50,57 @@
     </div>
 
     <div id="homePage" class="page">
-        <div class="header">
-            <button class="back-btn" onclick="location.reload()">← 回首頁</button>
-            <h1 id="modeTitle"></h1>
-        </div>
+        <div class="header"><button class="back-btn" onclick="location.reload()">← 回首頁</button><h1 id="modeTitle"></h1></div>
         <div class="form-container">
             <div class="form-group">
                 <label>員工姓名</label>
                 <select id="userName" class="form-control" onchange="saveUser(this.value)"> 
                     <option value="">請選擇人員...</option>
-                    <option>邱正豪</option><option>邱宥瑋</option><option>廖恆光</option>
-                    <option>林睿</option><option>董坤舜</option><option>黎光庭</option>
+                    <option>邱正豪</option><option>邱宥瑋</option><option>廖恆光</option><option>林睿</option><option>董坤舜</option><option>黎光庭</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label>日期</label>
-                <input type="date" id="actionDate" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>場次名稱 / 備註</label>
-                <input type="text" id="eventTag" class="form-control" placeholder="輸入場次或借用對象">
-            </div>
+            <div class="form-group"><label>日期</label><input type="date" id="actionDate" class="form-control"></div>
+            <div class="form-group"><label>場次名稱 / 備註</label><input type="text" id="eventTag" class="form-control" placeholder="輸入場次或借用對象"></div>
         </div>
         <div class="menu-grid">
-            <div class="menu-item" onclick="openCategory('truss')">
-                <img src="https://i.postimg.cc/GtDsw45n/OIP.png"><span>Truss類</span>
-            </div>
-            <div class="menu-item" onclick="openCategory('tent')">
-                 <img src="https://i.postimg.cc/KYxJNfXy/3tent001.png"><span>帳篷類</span>
-            </div>
-            <div class="menu-item" onclick="showSummary()">
-                <div style="font-size:50px">📊</div><span>即時庫存看</span>
-            </div>
-            <div class="menu-item" onclick="openCategory('others')">
-                <img src="https://i.postimg.cc/T1pdFnDg/OIP-(1).png"><span>其它物料</span>
-            </div>
+            <div class="menu-item" onclick="openCategory('truss')"><img src="https://i.postimg.cc/GtDsw45n/OIP.png"><span>Truss類</span></div>
+            <div class="menu-item" onclick="openCategory('tent')"><img src="https://i.postimg.cc/KYxJNfXy/3tent001.png"><span>帳篷類</span></div>
+            <div class="menu-item" onclick="showSummary()"><div style="font-size:50px">📊</div><span>即時庫存看</span></div>
+            <div class="menu-item" onclick="openCategory('others')"><img src="https://i.postimg.cc/T1pdFnDg/OIP-(1).png"><span>其它物料</span></div>
         </div>
     </div>
 
     <div id="listPage" class="page">
-        <div class="header">
-            <button class="back-btn" onclick="showPage('homePage')">← 返回類別</button>
-            <h2 id="categoryTitle" style="color:white; margin:0;"></h2>
-        </div>
+        <div class="header"><button class="back-btn" onclick="showPage('homePage')">← 返回類別</button><h2 id="categoryTitle" style="color:white; margin:0;"></h2></div>
         <div id="itemContainer" style="max-width:600px; margin:0 auto; padding:10px;"></div>
-        <div class="batch-bar">
-            <button id="batchBtn" class="batch-btn" onclick="submitBatch()">🚀 一鍵全部送出</button>
-        </div>
+        <div class="batch-bar"><button id="batchBtn" class="batch-btn" onclick="submitBatch()">🚀 一鍵全部送出</button></div>
     </div>
 
     <div id="summaryPage" class="page">
-        <div class="header">
-            <button class="back-btn" onclick="location.reload()">← 回首頁</button>
-            <h1>即時庫存總量</h1>
-        </div>
+        <div class="header"><button class="back-btn" onclick="location.reload()">← 回首頁</button><h1>即時庫存總量</h1></div>
         <div id="summaryContainer" style="max-width:600px; margin:0 auto; padding:15px; padding-bottom:80px;"></div>
     </div>
 
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBNiATgf4yVR5qZ5CEmGClfm22yjq2fBlI",
-            authDomain: "bayi-inventory.firebaseapp.com",
-            projectId: "bayi-inventory",
-            databaseURL: "https://bayi-inventory-default-rtdb.firebaseio.com", 
-            storageBucket: "bayi-inventory.firebasestorage.app",
-            messagingSenderId: "494997600674",
-            appId: "1:494997600674:web:711588fab8d8ae70eb5afb"
-        };
+        const firebaseConfig = { apiKey: "AIzaSyBNiATgf4yVR5qZ5CEmGClfm22yjq2fBlI", authDomain: "bayi-inventory.firebaseapp.com", projectId: "bayi-inventory", databaseURL: "https://bayi-inventory-default-rtdb.firebaseio.com", storageBucket: "bayi-inventory.firebasestorage.app", messagingSenderId: "494997600674", appId: "1:494997600674:web:711588fab8d8ae70eb5afb" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let currentMode = '';
-        let draft = JSON.parse(localStorage.getItem('bayi_draft')) || {};
-        let savedUser = localStorage.getItem('bayi_user') || "";
+        let currentMode = '', draft = JSON.parse(localStorage.getItem('bayi_draft')) || {}, savedUser = localStorage.getItem('bayi_user') || "";
 
-        const allItems = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "C夾", "Truss鐵板", "3米Truss後撐", "2米Truss後撐", "70Truss側拉", "50Truss側拉", "6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "墊箱", "12呎馬椅", "10呎馬椅", "9呎馬椅", "8尺馬椅", "6呎馬椅", "5呎馬椅", "3呎馬椅", "黑桌巾", "會議桌桌巾(紅布145*270)", "椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150", "3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(大紅)", "3米頂篷(紅)", "骨架300*300", "3米燈", "3米水溝", "屋型帳(紅)", "骨架300*600", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "骨架600*600", "6米水溝布", "6米圍布(白)", "6米邊", "6米腳", "6米雞爪", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "圓拱圍布(紅)", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "沙包"];
+        const allItems = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "C夾", "Truss鐵板", "3米Truss後撐", "2米Truss後撐", "70Truss側拉", "50Truss側拉", "6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "墊箱", "12呎馬椅", "9呎馬椅", "8尺馬椅", "5呎馬椅", "3呎馬椅", "黑桌巾", "會議桌桌巾(紅布145*270)", "椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150", "3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(紅)", "3米頂篷(紅)", "3米帳篷燈", "3米水溝", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "6米水溝布", "6米圍布(白)", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "骨架300*300", "骨架300*600", "骨架600*600", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "沙包"];
         
-        // 分類定義 (保持原本邏輯)
         const categories = { 
             truss: allItems.filter(n => n.toLowerCase().includes('truss') || n.includes('轉接頭') || n.includes('C夾') || n.includes('鐵板') || n.includes('側拉') || n.includes('後撐')),
-            tent: allItems.filter(n => n.includes('帳') || n.includes('篷') || n.includes('棚') || n.includes('圍布') || n.includes('水溝') || n.includes('骨架') || n.includes('營釘') || n.includes('頭圍') || n.includes('拱') || n.includes('燈') || n.includes('邊') || n.includes('腳') || n.includes('雞爪') || n.includes('沙包')),
+            tent: allItems.filter(n => n.includes('帳') || n.includes('篷') || n.includes('棚') || n.includes('圍布') || n.includes('水溝') || n.includes('骨架') || n.includes('營釘') || n.includes('頭圍') || n.includes('拱') || n.includes('燈') || n.includes('沙包')),
             others: allItems.filter(n => {
                 const isTruss = n.toLowerCase().includes('truss') || n.includes('轉接頭') || n.includes('C夾') || n.includes('鐵板') || n.includes('側拉') || n.includes('後撐');
-                const isTent = n.includes('帳') || n.includes('篷') || n.includes('棚') || n.includes('圍布') || n.includes('水溝') || n.includes('骨架') || n.includes('營釘') || n.includes('頭圍') || n.includes('拱') || n.includes('燈') || n.includes('邊') || n.includes('腳') || n.includes('雞爪') || n.includes('沙包');
+                const isTent = n.includes('帳') || n.includes('篷') || n.includes('棚') || n.includes('圍布') || n.includes('水溝') || n.includes('骨架') || n.includes('營釘') || n.includes('頭圍') || n.includes('拱') || n.includes('燈') || n.includes('沙包');
                 return !isTruss && !isTent;
             })
         };
 
-        // --- 帳篷區分組定義 (Abel 要求) ---
-        const tentMainItems = ["3米快速帳(紅白)", "3米快速帳(白)", "屋型帳(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "骨架300*300", "骨架300*600", "骨架600*600", "6米邊", "6米腳", "6米雞爪", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)"];
+        const tentMainItems = ["3米快速帳(紅白)", "3米快速帳(白)", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)"];
+        const tentFrames = ["骨架300*300", "骨架300*600", "骨架600*600"];
 
         function setMode(mode) {
             currentMode = mode;
@@ -153,27 +113,25 @@
             showPage('homePage');
         }
 
-        function showPage(id) { 
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
-            document.getElementById(id).classList.add('active'); 
-        }
-
+        function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function saveUser(name) { localStorage.setItem('bayi_user', name); }
 
         function openCategory(cat) {
             document.getElementById('categoryTitle').innerText = (cat === 'truss' ? '🏗️ Truss類' : cat === 'tent' ? '⛺ 帳篷類' : '📦 其它物料');
             const container = document.getElementById('itemContainer');
             container.innerHTML = '';
-
             let listToDisplay = categories[cat];
-
             if (cat === 'tent') {
-                // 帳篷類特別處理：分區顯示
                 const mainItems = listToDisplay.filter(n => tentMainItems.includes(n));
-                const accessoryItems = listToDisplay.filter(n => !tentMainItems.includes(n));
-
+                const accessoryItems = listToDisplay.filter(n => !tentMainItems.includes(n) && !tentFrames.includes(n));
+                const frameItems = listToDisplay.filter(n => tentFrames.includes(n));
+                
                 container.innerHTML += '<div class="tent-sub-title">⛺ 帳篷區</div>';
                 mainItems.forEach(name => container.appendChild(createItemCard(name)));
+                
+                // 骨架置底區隔
+                container.innerHTML += '<div class="tent-spacer"></div>';
+                frameItems.forEach(name => container.appendChild(createItemCard(name)));
 
                 container.innerHTML += '<div class="tent-sub-title">🛠️ 帳篷配件區</div>';
                 accessoryItems.forEach(name => container.appendChild(createItemCard(name)));
@@ -186,25 +144,14 @@
         function createItemCard(name) {
             const card = document.createElement('div');
             card.className = 'item-card';
-            card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; color:#333; margin-bottom:10px;">
-                    <b>${name}</b><span id="qty-${name}">...</span>
-                </div>
-                <div class="qty-input-group">
-                    <input type="number" id="input-${name}" class="input-num" value="${draft[name] || ''}" oninput="saveDraft('${name}', this.value)">
-                    <button class="submit-btn" style="background:${currentMode==='入庫'?'#4CAF50':'#E91E63'}" onclick="submitChange('${name}')">確認</button>
-                </div>`;
-            db.ref('inventory/' + name).on('value', s => { 
-                const qtyElem = document.getElementById(`qty-${name}`);
-                if(qtyElem) qtyElem.innerText = s.val() || 0; 
-            });
+            card.innerHTML = `<div style="display:flex; justify-content:space-between; color:#333; margin-bottom:10px;"><b>${name}</b><span id="qty-${name}">...</span></div>
+                <div class="qty-input-group"><input type="number" id="input-${name}" class="input-num" value="${draft[name] || ''}" oninput="saveDraft('${name}', this.value)">
+                <button class="submit-btn" style="background:${currentMode==='入庫'?'#4CAF50':'#E91E63'}" onclick="submitChange('${name}')">確認</button></div>`;
+            db.ref('inventory/' + name).on('value', s => { const el = document.getElementById(`qty-${name}`); if(el) el.innerText = s.val() || 0; });
             return card;
         }
 
-        function saveDraft(name, val) {
-            if (val) draft[name] = val; else delete draft[name];
-            localStorage.setItem('bayi_draft', JSON.stringify(draft));
-        }
+        function saveDraft(name, val) { if (val) draft[name] = val; else delete draft[name]; localStorage.setItem('bayi_draft', JSON.stringify(draft)); }
 
         function submitBatch() {
             const user = document.getElementById('userName').value;
@@ -212,12 +159,11 @@
             const items = Object.keys(draft);
             if (!user || items.length === 0) return alert('請先選擇人員並輸入數量');
             if(confirm('確定送出更新？')) {
-                const date = document.getElementById('actionDate').value;
                 items.forEach(name => {
                     let val = parseInt(draft[name]);
                     let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
                     db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
-                    db.ref('logs').push({ user, event: eventTag, name, val: delta, purpose: currentMode, date, time: new Date().toLocaleString() });
+                    db.ref('logs').push({ user, event: eventTag, name, val: delta, purpose: currentMode, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
                 });
                 draft = {}; localStorage.removeItem('bayi_draft'); location.reload();
             }
@@ -225,47 +171,32 @@
 
         function submitChange(name) {
             const user = document.getElementById('userName').value;
-            const eventTag = document.getElementById('eventTag').value || "未註記場次";
             const val = parseInt(document.getElementById('input-' + name).value);
             if (!user || isNaN(val)) return alert('資訊不全');
             let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
             db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
-            db.ref('logs').push({ user, event: eventTag, name, val: delta, purpose: currentMode, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
+            db.ref('logs').push({ user, event: document.getElementById('eventTag').value || "未註記場次", name, val: delta, purpose: currentMode, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
             document.getElementById('input-' + name).value = ''; delete draft[name]; alert('成功');
         }
 
         function showSummary() {
             const container = document.getElementById('summaryContainer');
-            container.innerHTML = '<div style="text-align:center; padding:20px;">讀取庫存中...</div>';
+            container.innerHTML = '讀取中...';
             db.ref('inventory').once('value', snap => {
-                container.innerHTML = '';
-                const data = snap.val() || {};
-                const groups = [
-                    { title: "🏗️ Truss 類別", items: categories.truss },
-                    { title: "⛺ 帳篷與周邊", items: categories.tent },
-                    { title: "📦 其它物料", items: categories.others }
-                ];
+                container.innerHTML = ''; const data = snap.val() || {};
+                const groups = [{ title: "🏗️ Truss 類別", items: categories.truss }, { title: "⛺ 帳篷與周邊", items: categories.tent }, { title: "📦 其它物料", items: categories.others }];
                 groups.forEach(group => {
-                    const titleDiv = document.createElement('div');
-                    titleDiv.className = 'summary-group-title';
-                    titleDiv.innerText = group.title;
-                    container.appendChild(titleDiv);
+                    const titleDiv = document.createElement('div'); titleDiv.className = 'summary-group-title'; titleDiv.innerText = group.title; container.appendChild(titleDiv);
                     group.items.forEach(name => {
-                        if (data[name] !== undefined) {
-                            const qty = data[name];
-                            const card = document.createElement('div');
-                            card.style.cssText = `background:white; color:#333; margin-bottom:8px; padding:15px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.2);`;
-                            card.innerHTML = `<b>${name}</b><span style="font-size:24px; font-weight:900; color:${qty<0?'#E91E63':'#2196F3'};">${qty}</span>`;
-                            container.appendChild(card);
-                        }
+                        const qty = data[name] || 0;
+                        const card = document.createElement('div');
+                        card.style.cssText = `background:white; color:#333; margin-bottom:8px; padding:15px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.2);`;
+                        card.innerHTML = `<b>${name}</b><span style="font-size:24px; font-weight:900; color:${qty<0?'#E91E63':'#2196F3'};">${qty}</span>`;
+                        container.appendChild(card);
                     });
                 });
             });
             showPage('summaryPage');
-        }
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./service-worker.js').then(() => console.log('SW OK'));
         }
     </script>
 </body>
