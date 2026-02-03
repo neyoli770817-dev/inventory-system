@@ -11,7 +11,6 @@
     <link rel="apple-touch-icon" href="https://i.postimg.cc/XNCSk29x/八毅LOGO.jpg">
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
     <style>
         :root { --bg-wine: #4A0404; --btn-white: #FFFFFF; --text-dark: #333; }
         body { font-family: -apple-system, sans-serif; background-color: var(--bg-wine); color: white; margin: 0; padding: 10px; }
@@ -34,10 +33,6 @@
         .menu-item img { width: 60px !important; height: 60px !important; object-fit: contain; }
         .menu-item span { color: var(--text-dark); font-weight: bold; font-size: 16px; margin-top: 5px; }
         
-        .record-list { max-width: 500px; margin: 20px auto; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 15px; }
-        .audio-item { background: white; color: black; padding: 10px; border-radius: 10px; margin-bottom: 10px; font-size: 13px; }
-        .audio-item audio { width: 100%; margin-top: 5px; height: 35px; }
-
         .item-card { background: white; color: var(--text-dark); border-radius: 12px; padding: 15px; margin-bottom: 10px; }
         .qty-input-group { display: flex; align-items: center; gap: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         .input-num { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 5px; text-align: center; font-size: 18px; }
@@ -72,8 +67,8 @@
             <div class="form-group"><label>日期</label><input type="date" id="actionDate" class="form-control"></div>
             <div class="form-group">
                 <label>場次名稱 / 備註</label>
-                <input type="text" id="eventTag" class="form-control" placeholder="輸入場次或借用對象">
-                <button id="voiceBtn" class="voice-btn" onclick="toggleRecording()">🎤</button>
+                <input type="text" id="eventTag" class="form-control" placeholder="輸入場次或按麥克風說話">
+                <button id="voiceBtn" class="voice-btn" onclick="toggleVoiceRecognition()">🎤</button>
             </div>
         </div>
         <div class="menu-grid">
@@ -81,11 +76,6 @@
             <div class="menu-item" onclick="openCategory('tent')"><img src="https://i.postimg.cc/KYxJNfXy/3tent001.png"><span>帳篷類</span></div>
             <div class="menu-item" onclick="showSummary()"><div style="font-size:50px">📊</div><span>即時庫存看</span></div>
             <div class="menu-item" onclick="openCategory('others')"><img src="https://i.postimg.cc/T1pdFnDg/OIP-(1).png"><span>其它物料</span></div>
-        </div>
-
-        <div class="record-list">
-            <h3 style="margin-top:0; border-bottom:1px solid #777; padding-bottom:5px;">🎙️ 語音備忘錄 (最新3筆)</h3>
-            <div id="audioContainer">讀取中...</div>
         </div>
     </div>
 
@@ -104,79 +94,63 @@
         const firebaseConfig = { apiKey: "AIzaSyBNiATgf4yVR5qZ5CEmGClfm22yjq2fBlI", authDomain: "bayi-inventory.firebaseapp.com", projectId: "bayi-inventory", databaseURL: "https://bayi-inventory-default-rtdb.firebaseio.com", storageBucket: "bayi-inventory.firebasestorage.app", messagingSenderId: "494997600674", appId: "1:494997600674:web:711588fab8d8ae70eb5afb" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const storage = firebase.storage();
 
         let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "", leaveTime = 0;
-        let mediaRecorder, audioChunks = [];
 
-        // --- 錄音與存儲邏輯 ---
-        async function toggleRecording() {
+        // --- 免費語音轉文字邏輯 ---
+        let recognition;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'zh-TW';
+            recognition.interimResults = false;
+
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                document.getElementById('eventTag').value += text;
+                stopVisuals();
+            };
+            recognition.onerror = () => stopVisuals();
+            recognition.onend = () => stopVisuals();
+        }
+
+        function toggleVoiceRecognition() {
             const btn = document.getElementById('voiceBtn');
-            const user = document.getElementById('userName').value;
-            if (!user) return alert("請先選擇人員再錄音");
-
-            if (mediaRecorder && mediaRecorder.state === "recording") {
-                mediaRecorder.stop();
-                btn.classList.remove('recording');
-                btn.innerText = "🎤";
+            if (btn.classList.contains('recording')) {
+                recognition.stop();
             } else {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
-                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                    mediaRecorder.onstop = async () => {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' });
-                        const fileName = `voice_${Date.now()}.mp3`;
-                        const storageRef = storage.ref(`recordings/${fileName}`);
-                        alert("錄音上傳中...");
-                        const snapshot = await storageRef.put(audioBlob);
-                        const url = await snapshot.ref.getDownloadURL();
-                        db.ref('voice_logs').push({
-                            user: user,
-                            date: document.getElementById('actionDate').value,
-                            event: document.getElementById('eventTag').value || "無備註",
-                            audioUrl: url,
-                            timestamp: Date.now()
-                        });
-                        alert("錄音已備存至系統");
-                    };
-                    mediaRecorder.start();
-                    btn.classList.add('recording');
-                    btn.innerText = "🛑";
-                } catch (err) { alert("麥克風開啟失敗，請檢查權限"); }
+                if (!recognition) return alert("您的裝置不支援語音辨識");
+                recognition.start();
+                btn.classList.add('recording');
+                btn.innerText = "🛑";
             }
         }
 
-        // 監聽語音日誌
-        db.ref('voice_logs').limitToLast(3).on('value', snap => {
-            const container = document.getElementById('audioContainer');
-            container.innerHTML = '';
-            const data = snap.val();
-            if(!data) { container.innerHTML = '暫無錄音'; return; }
-            Object.values(data).reverse().forEach(log => {
-                const item = document.createElement('div');
-                item.className = 'audio-item';
-                item.innerHTML = `<b>${log.user}</b> - ${log.event}<br><audio controls src="${log.audioUrl}"></audio>`;
-                container.appendChild(item);
-            });
-        });
+        function stopVisuals() {
+            const btn = document.getElementById('voiceBtn');
+            btn.classList.remove('recording');
+            btn.innerText = "🎤";
+        }
 
-        // 180秒離線清空邏輯
+        // --- 180秒離線清空邏輯 ---
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) { leaveTime = Date.now(); } 
             else {
                 if (leaveTime > 0 && (Date.now() - leaveTime) > 180000) {
                     draft = {}; 
                     if(document.getElementById('listPage').classList.contains('active')) openCategory(currentCat);
-                    alert('離開超過 180 秒，資料已歸零');
+                    alert('離開超過 3 分鐘，為保險起見已清空待送出數據');
                 }
             }
         });
 
-        // 器材總表 (Abel 你可以自行在 allItems 修改品項名稱)
-        const allItems = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "Truss鐵板", "Truss斜撐", "6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "墊箱", "12呎馬椅", "9呎馬椅", "8尺馬椅", "5呎馬椅", "3呎馬椅", "黑桌巾", "會議桌桌巾(紅布145*270)", "椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150", "3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(紅)", "3米頂篷(紅)", "3米帳篷燈", "3米水溝", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "6米水溝布", "6米圍布(白)", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "骨架300*300", "骨架300*600", "骨架600*600", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "沙包", "C夾"];
+        // --- 器材與分類 (已修改香檳金椅套) ---
+        const allItems = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "Truss鐵板", "Truss斜撐", "6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "墊箱", "12呎馬椅", "9呎馬椅", "8尺馬椅", "5呎馬椅", "3呎馬椅", "黑桌巾", "會議桌桌巾(紅布145*270)", "香檳金椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150", "3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(紅)", "3米頂篷(紅)", "3米帳篷燈", "3米水溝", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "6米水溝布", "6米圍布(白)", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "骨架300*300", "骨架300*600", "骨架600*600", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "沙包", "C夾"];
         
+        const trussMain = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss"];
+        const tentMainItems = ["3米快速帳(紅白)", "3米快速帳(白)", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)"];
+        const stageItems = ["6x6舞台板", "3x6舞台板", "C夾", "墊箱"];
+
         const categories = { 
             truss: allItems.filter(n => n.toLowerCase().includes('truss') || n.includes('轉接頭') || n.includes('鐵板') || n.includes('斜撐')),
             tent: allItems.filter(n => n.includes('帳') || n.includes('篷') || n.includes('棚') || n.includes('圍布') || n.includes('水溝') || n.includes('骨架') || n.includes('營釘') || n.includes('頭圍') || n.includes('拱') || n.includes('燈') || n.includes('沙包')),
@@ -186,11 +160,6 @@
                 return !isT && !isA;
             })
         };
-
-        const trussMain = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss"];
-        const tentMainItems = ["3米快速帳(紅白)", "3米快速帳(白)", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)"];
-        const tentFrames = ["骨架300*300", "骨架300*600", "骨架600*600"];
-        const stageItems = ["6x6舞台板", "3x6舞台板", "C夾", "墊箱"];
 
         let currentCat = '';
         function openCategory(cat) {
@@ -249,10 +218,12 @@
             const items = Object.keys(draft);
             if (!user || items.length === 0) return alert('請輸入數量');
             if(confirm('確定送出？')) {
+                const event = document.getElementById('eventTag').value || "無備註";
                 items.forEach(name => {
                     let val = parseInt(draft[name]);
                     let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
                     db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
+                    db.ref('logs').push({ user, name, val: delta, event, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
                 });
                 draft = {}; alert('送出成功'); location.reload();
             }
@@ -261,10 +232,13 @@
         function submitChange(name) {
             const user = document.getElementById('userName').value;
             const val = parseInt(document.getElementById('input-' + name).value);
-            if (!user || isNaN(val)) return alert('請填寫');
+            if (!user || isNaN(val)) return alert('請填寫人員與數量');
             let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
             db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
-            alert('成功');
+            db.ref('logs').push({ user, name, val: delta, event: document.getElementById('eventTag').value || "無備註", date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
+            alert(name + ' 成功');
+            document.getElementById('input-' + name).value = '';
+            delete draft[name];
         }
 
         function showSummary() {
