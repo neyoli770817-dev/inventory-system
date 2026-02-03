@@ -34,8 +34,8 @@
         .batch-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #222; padding: 15px; z-index: 999; text-align: center; }
         .batch-btn { width: 90%; max-width: 500px; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; border: none; color: white; cursor: pointer; }
         .summary-group-title { margin: 20px 0 10px 5px; color: #FFD700; font-size: 18px; font-weight: bold; border-left: 4px solid #FFD700; padding-left: 10px; }
-        .tent-sub-title { width: 100%; color: #FFD700; padding: 10px 0; margin-top: 10px; font-weight: bold; font-size: 18px; border-bottom: 1px dashed #FFD700; }
-        .tent-spacer { height: 20px; width: 100%; }
+        .sub-group-title { width: 100%; color: #FFD700; padding: 10px 0; margin-top: 10px; font-weight: bold; font-size: 18px; border-bottom: 1px dashed #FFD700; }
+        .spacer { height: 20px; width: 100%; }
     </style>
 </head>
 <body>
@@ -89,36 +89,36 @@
         let currentMode = '';
         let draft = {}; 
         let savedUser = localStorage.getItem('bayi_user') || "";
-        let leaveTime = 0; // 紀錄離開的時間
+        let leaveTime = 0;
 
-        const allItems = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "C夾", "Truss鐵板", "3米Truss後撐", "2米Truss後撐", "70Truss側拉", "50Truss側拉", "6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "墊箱", "12呎馬椅", "9呎馬椅", "8尺馬椅", "5呎馬椅", "3呎馬椅", "黑桌巾", "會議桌桌巾(紅布145*270)", "椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150", "3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(紅)", "3米頂篷(紅)", "3米帳篷燈", "3米水溝", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "6米水溝布", "6米圍布(白)", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "骨架300*300", "骨架300*600", "骨架600*600", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "沙包"];
+        // 品項清單：已整合 Truss斜撐，刪除舊側拉/後撐
+        const allItems = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "C夾", "Truss鐵板", "Truss斜撐", "6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "墊箱", "12呎馬椅", "9呎馬椅", "8尺馬椅", "5呎馬椅", "3呎馬椅", "黑桌巾", "會議桌桌巾(紅布145*270)", "椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150", "3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(紅)", "3米頂篷(紅)", "3米帳篷燈", "3米水溝", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "6米水溝布", "6米圍布(白)", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "骨架300*300", "骨架300*600", "骨架600*600", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "沙包"];
         
         const categories = { 
-            truss: allItems.filter(n => n.toLowerCase().includes('truss') || n.includes('轉接頭') || n.includes('C夾') || n.includes('鐵板') || n.includes('側拉') || n.includes('後撐')),
+            truss: allItems.filter(n => n.toLowerCase().includes('truss') || n.includes('轉接頭') || n.includes('C夾') || n.includes('鐵板') || n.includes('斜撐')),
             tent: allItems.filter(n => n.includes('帳') || n.includes('篷') || n.includes('棚') || n.includes('圍布') || n.includes('水溝') || n.includes('骨架') || n.includes('營釘') || n.includes('頭圍') || n.includes('拱') || n.includes('燈') || n.includes('沙包')),
             others: allItems.filter(n => {
-                const isTruss = n.toLowerCase().includes('truss') || n.includes('轉接頭') || n.includes('C夾') || n.includes('鐵板') || n.includes('側拉') || n.includes('後撐');
+                const isTruss = n.toLowerCase().includes('truss') || n.includes('轉接頭') || n.includes('C夾') || n.includes('鐵板') || n.includes('斜撐');
                 const isTent = n.includes('帳') || n.includes('篷') || n.includes('棚') || n.includes('圍布') || n.includes('水溝') || n.includes('骨架') || n.includes('營釘') || n.includes('頭圍') || n.includes('拱') || n.includes('燈') || n.includes('沙包');
                 return !isTruss && !isTent;
             })
         };
 
+        // Truss 分區定義
+        const trussMain = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss"];
+        // 帳篷分區定義
         const tentMainItems = ["3米快速帳(紅白)", "3米快速帳(白)", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)"];
         const tentFrames = ["骨架300*300", "骨架300*600", "骨架600*600"];
 
-        // --- 核心 logic: 監控切換 APP 狀態 ---
+        // 離開 App 10秒自動清空
         document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                leaveTime = Date.now(); // 紀錄切出去的時刻
-            } else {
+            if (document.hidden) { leaveTime = Date.now(); } 
+            else {
                 const backTime = Date.now();
-                // 如果切回來已經超過 10000 毫秒 (10秒)
                 if (leaveTime > 0 && (backTime - leaveTime) > 10000) {
                     draft = {}; 
-                    if(document.getElementById('listPage').classList.contains('active')) {
-                        openCategory(currentCat); // 重新刷一遍目前分類的介面
-                    }
-                    alert('離開時間過長，已自動清空輸入數據以防出錯。');
+                    if(document.getElementById('listPage').classList.contains('active')) { openCategory(currentCat); }
+                    alert('離開時間過長，已自動清空輸入數據。');
                 }
             }
         });
@@ -130,15 +130,24 @@
             const container = document.getElementById('itemContainer');
             container.innerHTML = '';
             let listToDisplay = categories[cat];
-            if (cat === 'tent') {
+
+            if (cat === 'truss') {
+                const tMain = listToDisplay.filter(n => trussMain.includes(n));
+                const tAcc = listToDisplay.filter(n => !trussMain.includes(n));
+                container.innerHTML += '<div class="sub-group-title">🏗️ Truss 區</div>';
+                tMain.forEach(name => container.appendChild(createItemCard(name)));
+                container.innerHTML += '<div class="sub-group-title">🛠️ Truss 配件區</div>';
+                tAcc.forEach(name => container.appendChild(createItemCard(name)));
+            } 
+            else if (cat === 'tent') {
                 const mainItems = listToDisplay.filter(n => tentMainItems.includes(n));
                 const accessoryItems = listToDisplay.filter(n => !tentMainItems.includes(n) && !tentFrames.includes(n));
                 const frameItems = listToDisplay.filter(n => tentFrames.includes(n));
-                container.innerHTML += '<div class="tent-sub-title">⛺ 帳篷區</div>';
+                container.innerHTML += '<div class="sub-group-title">⛺ 帳篷區</div>';
                 mainItems.forEach(name => container.appendChild(createItemCard(name)));
-                container.innerHTML += '<div class="tent-spacer"></div>';
+                container.innerHTML += '<div class="spacer"></div>';
                 frameItems.forEach(name => container.appendChild(createItemCard(name)));
-                container.innerHTML += '<div class="tent-sub-title">🛠️ 帳篷配件區</div>';
+                container.innerHTML += '<div class="sub-group-title">🛠️ 帳篷配件區</div>';
                 accessoryItems.forEach(name => container.appendChild(createItemCard(name)));
             } else {
                 listToDisplay.forEach(name => container.appendChild(createItemCard(name)));
@@ -184,9 +193,7 @@
                     db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
                     db.ref('logs').push({ user, event: eventTag, name, val: delta, purpose: currentMode, date, time: new Date().toLocaleString() });
                 });
-                draft = {}; 
-                alert('一鍵送出成功！');
-                location.reload(); 
+                draft = {}; alert('一鍵送出成功！'); location.reload(); 
             }
         }
 
@@ -197,9 +204,7 @@
             let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
             db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
             db.ref('logs').push({ user, event: document.getElementById('eventTag').value || "未註記場次", name, val: delta, purpose: currentMode, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
-            document.getElementById('input-' + name).value = ''; 
-            delete draft[name]; 
-            alert(name + ' 送出成功');
+            document.getElementById('input-' + name).value = ''; delete draft[name]; alert(name + ' 送出成功');
         }
 
         function showSummary() {
