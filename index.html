@@ -22,17 +22,15 @@
         .form-container { max-width: 500px; margin: 0 auto 15px auto; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; }
         .form-group { margin-bottom: 10px; } .form-group label { display: block; margin-bottom: 5px; font-size: 14px; }
         .form-control { width: 100%; padding: 10px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
-        /* 語音區塊優化 */
         .voice-section { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 12px; margin-top: 10px; }
         .voice-btn { background: #555; border: none; border-radius: 50%; width: 50px; height: 50px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; flex-shrink: 0; }
         .voice-btn.recording { background: #ff0000; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
         .voice-input { flex-grow: 1; height: 45px; border-radius: 8px; border: 2px solid white; padding: 0 10px; font-size: 16px; }
         .quick-send-btn { background: #FFD700; color: #333; border: none; padding: 0 15px; height: 45px; border-radius: 8px; font-weight: bold; cursor: pointer; white-space: nowrap; }
-        
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin: 20px auto; }
         .menu-item { background: var(--btn-white); aspect-ratio: 1/1; border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; padding: 10px; }
-        .menu-item img { width: 60px !important; height: 60px !important; object-fit: contain; }
+        .menu-item img { width: 60px; height: 60px; object-fit: contain; }
         .menu-item span { color: var(--text-dark); font-weight: bold; font-size: 16px; margin-top: 5px; }
         .item-card { background: white; color: var(--text-dark); border-radius: 12px; padding: 15px; margin-bottom: 10px; }
         .qty-input-group { display: flex; align-items: center; gap: 10px; border-top: 1px solid #eee; padding-top: 10px; }
@@ -45,7 +43,6 @@
     </style>
 </head>
 <body>
-
     <div id="modePage" class="page active">
         <div class="header"><h1>八毅庫存系統</h1></div>
         <div class="mode-container">
@@ -54,7 +51,6 @@
             <button class="back-btn" onclick="showSummary()" style="width:80%; font-size:20px;">📊 查看庫存總量</button>
         </div>
     </div>
-
     <div id="homePage" class="page">
         <div class="header"><button class="back-btn" onclick="location.reload()">← 回首頁</button><h1 id="modeTitle"></h1></div>
         <div class="form-container">
@@ -66,7 +62,6 @@
                 </select>
             </div>
             <div class="form-group"><label>日期</label><input type="date" id="actionDate" class="form-control"></div>
-            
             <label style="font-size: 14px;">語音留言 / 外場回報</label>
             <div class="voice-section">
                 <button id="voiceBtn" class="voice-btn" onclick="toggleVoiceRecognition()">🎤</button>
@@ -74,7 +69,6 @@
                 <button class="quick-send-btn" onclick="submitBatch()">🚀 送出</button>
             </div>
         </div>
-        
         <div class="menu-grid">
             <div class="menu-item" onclick="openCategory('truss')"><img src="https://i.postimg.cc/GtDsw45n/OIP.png"><span>Truss類</span></div>
             <div class="menu-item" onclick="openCategory('tent')"><img src="https://i.postimg.cc/KYxJNfXy/3tent001.png"><span>帳篷類</span></div>
@@ -82,48 +76,39 @@
             <div class="menu-item" onclick="openCategory('others')"><img src="https://i.postimg.cc/T1pdFnDg/OIP-(1).png"><span>其它物料</span></div>
         </div>
     </div>
-
     <div id="listPage" class="page">
         <div class="header"><button class="back-btn" onclick="showPage('homePage')">← 返回</button><h2 id="categoryTitle" style="color:white; margin:0;"></h2></div>
         <div id="itemContainer" style="max-width:600px; margin:0 auto; padding:10px;"></div>
         <div class="batch-bar"><button id="batchBtn" class="batch-btn" onclick="submitBatch()">🚀 一鍵確認送出</button></div>
     </div>
-
     <div id="summaryPage" class="page">
         <div class="header"><button class="back-btn" onclick="location.reload()">← 回首頁</button><h1>即時庫存總量</h1></div>
         <div id="summaryContainer" style="max-width:600px; margin:0 auto; padding:15px; padding-bottom:80px;"></div>
     </div>
-
     <script>
         const firebaseConfig = { apiKey: "AIzaSyBNiATgf4yVR5qZ5CEmGClfm22yjq2fBlI", authDomain: "bayi-inventory.firebaseapp.com", projectId: "bayi-inventory", databaseURL: "https://bayi-inventory-default-rtdb.firebaseio.com", storageBucket: "bayi-inventory.firebasestorage.app", messagingSenderId: "494997600674", appId: "1:494997600674:web:711588fab8d8ae70eb5afb" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "";
 
-        let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "", leaveTime = 0;
-
-        // --- 核心：語音術語校正機 ---
         function autoCorrect(text) {
-            const dictionary = {
-                "量米": "2米",
-                "兩米": "2米",
-                "三米": "3米",
-                "山米": "3米",
-                "一米": "1米",
-                "跨斯": "Truss",
-                "拉斯": "Truss",
-                "跨": "Truss",
-                "cross": "Truss",
-                "特拉斯": "Truss",
-                "脫拉斯": "Truss",
-                "死夾": "C夾",
-                "吸夾": "C夾"
-            };
-            let correctedText = text;
-            for (let key in dictionary) {
-                const regex = new RegExp(key, "gi");
-                correctedText = correctedText.replace(regex, dictionary[key]);
-            }
-            return correctedText;
+            let t = text;
+            // 處理常見誤判詞組
+            const rules = [
+                { reg: /[三山杉]米[創刷促出處]/g, rep: "3米Truss" },
+                { reg: /[兩量涼]米[創刷促出處]/g, rep: "2米Truss" },
+                { reg: /1米[創刷促出處]/g, rep: "1米Truss" },
+                { reg: /泰山米/g, rep: "3米" },
+                { reg: /[三山杉]米/g, rep: "3米" },
+                { reg: /[兩量涼]米/g, rep: "2米" },
+                { reg: /[一乙]米/g, rep: "1米" },
+                { reg: /[跨拉斯刷創出處cross]/gi, rep: "Truss" },
+                { reg: /死夾|吸夾|吸假/g, rep: "C夾" }
+            ];
+            rules.forEach(rule => { t = t.replace(rule.reg, rule.rep); });
+            // 二次清理：防止出現 "3米TrussTruss"
+            t = t.replace(/TrussTruss/gi, "Truss");
+            return t;
         }
 
         let recognition;
@@ -131,110 +116,62 @@
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
             recognition.lang = 'zh-TW';
-            recognition.continuous = false;
-            recognition.interimResults = false;
             recognition.onresult = (event) => {
-                let text = event.results[0][0].transcript;
-                text = autoCorrect(text); // 這裡進行自動校正
-                document.getElementById('eventTag').value += text;
+                let result = event.results[0][0].transcript;
+                document.getElementById('eventTag').value += autoCorrect(result);
                 stopVisuals();
             };
-            recognition.onerror = () => stopVisuals();
-            recognition.onend = () => stopVisuals();
+            recognition.onend = stopVisuals;
+            recognition.onerror = stopVisuals;
         }
 
         function toggleVoiceRecognition() {
             const btn = document.getElementById('voiceBtn');
-            if (btn.classList.contains('recording')) {
-                recognition.stop();
-            } else {
-                if (!recognition) return alert("您的裝置不支援語音辨識");
-                recognition.start();
-                btn.classList.add('recording');
-                btn.innerText = "🛑";
-            }
+            if (btn.classList.contains('recording')) { recognition.stop(); } 
+            else { recognition.start(); btn.classList.add('recording'); btn.innerText = "🛑"; }
         }
-
-        function stopVisuals() {
-            const btn = document.getElementById('voiceBtn');
-            btn.classList.remove('recording');
-            btn.innerText = "🎤";
-        }
+        function stopVisuals() { const btn = document.getElementById('voiceBtn'); btn.classList.remove('recording'); btn.innerText = "🎤"; }
 
         const allItems = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "Truss鐵板", "Truss斜撐", "6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "墊箱", "12呎馬椅", "9呎馬椅", "8尺馬椅", "5呎馬椅", "3呎馬椅", "會議桌桌巾(黑145*270)", "會議桌桌巾(紅145*270)", "會議桌厚桌巾(紅145*270)", "香檳金椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150", "3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(紅)", "3米頂篷(紅)", "3米帳篷燈", "3米水溝", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "6米水溝布", "6米圍布(白)", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "骨架300*300", "骨架300*600", "骨架600*600", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "沙包", "C夾"];
-        
         const trussMain = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss"];
         const tentMainItems = ["3米快速帳(紅白)", "3米快速帳(白)", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)"];
         const stageItems = ["6x6舞台板", "3x6舞台板", "C夾", "墊箱"];
-
         const categories = { 
             truss: allItems.filter(n => n.toLowerCase().includes('truss') || n.includes('轉接頭') || n.includes('鐵板') || n.includes('斜撐')),
             tent: allItems.filter(n => n.includes('帳') || n.includes('篷') || n.includes('棚') || n.includes('圍布') || n.includes('水溝') || n.includes('骨架') || n.includes('營釘') || n.includes('頭圍') || n.includes('拱') || n.includes('燈') || n.includes('沙包')),
-            others: allItems.filter(n => {
-                const isT = n.toLowerCase().includes('truss') || n.includes('轉接頭') || n.includes('鐵板') || n.includes('斜撐');
-                const isA = n.includes('帳') || n.includes('篷') || n.includes('棚') || n.includes('圍布') || n.includes('水溝') || n.includes('骨架') || n.includes('營釘') || n.includes('頭圍') || n.includes('拱') || n.includes('燈') || n.includes('沙包');
-                return !isT && !isA;
-            })
+            others: allItems.filter(n => !allItems.filter(x => x.toLowerCase().includes('truss') || x.includes('帳') || x.includes('篷') || x.includes('棚') || x.includes('圍布')).includes(n))
         };
 
-        function setMode(mode) {
-            currentMode = mode;
-            document.getElementById('modeTitle').innerText = (mode === '取用' ? '📤 出庫模式' : '📥 入庫模式');
-            document.getElementById('actionDate').valueAsDate = new Date();
-            if(savedUser) document.getElementById('userName').value = savedUser;
-            showPage('homePage');
-        }
-
-        function openCategory(cat) {
-            document.getElementById('categoryTitle').innerText = (cat === 'truss' ? '🏗️ Truss類' : cat === 'tent' ? '⛺ 帳篷類' : '📦 其它物料');
-            const container = document.getElementById('itemContainer');
-            container.innerHTML = '';
-            let list = categories[cat];
-            if (cat === 'truss') {
-                container.innerHTML += '<div class="sub-group-title">🏗️ Truss 區</div>';
-                list.filter(n => trussMain.includes(n)).forEach(n => container.appendChild(createItemCard(n)));
-                container.innerHTML += '<div class="sub-group-title">🛠️ Truss 配件區</div>';
-                list.filter(n => !trussMain.includes(n)).forEach(n => container.appendChild(createItemCard(n)));
-            } else if (cat === 'tent') {
-                container.innerHTML += '<div class="sub-group-title">⛺ 帳篷區</div>';
-                list.filter(n => tentMainItems.includes(n)).forEach(n => container.appendChild(createItemCard(n)));
-                container.innerHTML += '<div class="sub-group-title">🛠️ 骨架與配件</div>';
-                list.filter(n => !tentMainItems.includes(n)).forEach(n => container.appendChild(createItemCard(n)));
-            } else if (cat === 'others') {
-                container.innerHTML += '<div class="sub-group-title">🎭 舞台區</div>';
-                list.filter(n => stageItems.includes(n)).forEach(n => container.appendChild(createItemCard(n)));
-                container.innerHTML += '<div class="sub-group-title">🛠️ 活動配件</div>';
-                list.filter(n => !stageItems.includes(n)).forEach(n => container.appendChild(createItemCard(n)));
-            }
+        function setMode(mode) { currentMode = mode; document.getElementById('modeTitle').innerText = (mode === '取用' ? '📤 出庫模式' : '📥 入庫模式'); document.getElementById('actionDate').valueAsDate = new Date(); if(savedUser) document.getElementById('userName').value = savedUser; showPage('homePage'); }
+        function openCategory(cat) { 
+            const container = document.getElementById('itemContainer'); container.innerHTML = '';
+            const list = categories[cat];
+            if(cat==='truss'){ container.innerHTML+='<div class="sub-group-title">🏗️ Truss 區</div>'; list.filter(n=>trussMain.includes(n)).forEach(n=>container.appendChild(createItemCard(n))); }
+            else if(cat==='tent'){ container.innerHTML+='<div class="sub-group-title">⛺ 帳篷區</div>'; list.filter(n=>tentMainItems.includes(n)).forEach(n=>container.appendChild(createItemCard(n))); }
+            else { container.innerHTML+='<div class="sub-group-title">🎭 舞台配件</div>'; list.forEach(n=>container.appendChild(createItemCard(n))); }
             showPage('listPage');
         }
-
         function createItemCard(name) {
-            const card = document.createElement('div');
-            card.className = 'item-card';
-            card.innerHTML = `<div style="display:flex; justify-content:space-between; color:#333; margin-bottom:10px;"><b>${name}</b><span id="qty-${name}">...</span></div>
+            const card = document.createElement('div'); card.className = 'item-card';
+            card.innerHTML = `<div style="display:flex; justify-content:space-between; color:#333;"><b>${name}</b><span id="qty-${name}">...</span></div>
                 <div class="qty-input-group"><input type="number" id="input-${name}" class="input-num" placeholder="0" oninput="updateDraft('${name}', this.value)">
                 <button class="submit-btn" style="background:${currentMode==='入庫'?'#4CAF50':'#E91E63'}" onclick="submitChange('${name}')">確認</button></div>`;
-            db.ref('inventory/' + name).on('value', s => { if(document.getElementById(`qty-${name}`)) document.getElementById(`qty-${name}`).innerText = s.val() || 0; });
+            db.ref('inventory/'+name).on('value', s => { if(document.getElementById(`qty-${name}`)) document.getElementById(`qty-${name}`).innerText = s.val() || 0; });
             return card;
         }
-
         function saveUser(v) { localStorage.setItem('bayi_user', v); }
-        function updateDraft(n, v) { if (v && v !== "0") draft[n] = v; else delete draft[n]; }
+        function updateDraft(n,v) { if(v && v!=="0") draft[n]=v; else delete draft[n]; }
         function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
 
         function submitBatch() {
-            const user = document.getElementById('userName').value;
-            if (!user) return alert('請先選擇人員姓名');
+            const user = document.getElementById('userName').value; if(!user) return alert('請先選擇人員姓名');
             const event = document.getElementById('eventTag').value || "無備註";
             const items = Object.keys(draft);
-            
-            if(confirm('確定送出紀錄？')) {
-                if (items.length > 0) {
+            if(confirm('確定送出紀錄？')){
+                if(items.length > 0){
                     items.forEach(name => {
-                        let val = parseInt(draft[name]);
-                        let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
-                        db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
+                        let delta = (currentMode === '入庫') ? Math.abs(parseInt(draft[name])) : -Math.abs(parseInt(draft[name]));
+                        db.ref('inventory/'+name).transaction(c => (c||0)+delta);
                         db.ref('logs').push({ user, name, val: delta, event, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
                     });
                 } else {
@@ -243,33 +180,23 @@
                 draft = {}; alert('送出成功'); location.reload();
             }
         }
-
         function submitChange(name) {
-            const user = document.getElementById('userName').value;
-            const val = parseInt(document.getElementById('input-' + name).value);
-            if (!user) return alert('請先選擇人員姓名');
-            if (isNaN(val)) return alert('請輸入數量');
-            let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
-            db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
-            db.ref('logs').push({ user, name, val: delta, event: document.getElementById('eventTag').value || "無備註", date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
-            alert(name + ' 確認成功');
-            document.getElementById('input-' + name).value = '';
-            delete draft[name];
+            const user = document.getElementById('userName').value; const val = parseInt(document.getElementById('input-'+name).value);
+            if(!user || isNaN(val)) return alert('請填寫人員與數量');
+            let delta = (currentMode==='入庫')?Math.abs(val):-Math.abs(val);
+            db.ref('inventory/'+name).transaction(c=>(c||0)+delta);
+            db.ref('logs').push({ user, name, val: delta, event: document.getElementById('eventTag').value||"無備註", date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
+            alert(name+' 成功'); document.getElementById('input-'+name).value=''; delete draft[name];
         }
-
         function showSummary() {
-            const container = document.getElementById('summaryContainer');
-            container.innerHTML = '載入中...';
+            const container = document.getElementById('summaryContainer'); container.innerHTML = '載入中...';
             db.ref('inventory').once('value', snap => {
-                container.innerHTML = ''; const data = snap.val() || {};
-                [ {t:"🏗️ Truss", i:categories.truss}, {t:"⛺ 帳篷", i:categories.tent}, {t:"📦 其他", i:categories.others} ].forEach(g => {
-                    const title = document.createElement('div'); title.className = 'sub-group-title'; title.innerText = g.t; container.appendChild(title);
-                    g.i.forEach(name => {
-                        const q = data[name] || 0;
-                        const row = document.createElement('div');
-                        row.style.cssText = "background:white; color:black; margin:5px 0; padding:10px; border-radius:8px; display:flex; justify-content:space-between;";
-                        row.innerHTML = `<span>${name}</span><b>${q}</b>`;
-                        container.appendChild(row);
+                container.innerHTML = ''; const data = snap.val()||{};
+                Object.keys(categories).forEach(k => {
+                    const title = document.createElement('div'); title.className = 'sub-group-title'; title.innerText = k; container.appendChild(title);
+                    categories[k].forEach(name => {
+                        const row = document.createElement('div'); row.style.cssText = "background:white; color:black; margin:5px 0; padding:10px; border-radius:8px; display:flex; justify-content:space-between;";
+                        row.innerHTML = `<span>${name}</span><b>${data[name]||0}</b>`; container.appendChild(row);
                     });
                 });
             });
