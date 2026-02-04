@@ -15,22 +15,21 @@
         :root { --bg-wine: #4A0404; --btn-white: #FFFFFF; --text-dark: #333; }
         body { font-family: -apple-system, sans-serif; background-color: var(--bg-wine); color: white; margin: 0; padding: 10px; overflow-x: hidden; }
         .page { display: none; padding-bottom: 80px; } .page.active { display: block; }
-        .header { text-align: center; padding: 15px 0; background: var(--bg-wine); position: sticky; top: 0; z-index: 100; }
+        .header { text-align: center; padding: 10px 0; background: var(--bg-wine); position: sticky; top: 0; z-index: 100; }
         .mode-container { display: flex; flex-direction: column; gap: 20px; align-items: center; justify-content: center; height: 80vh; }
         .mode-btn { width: 80%; padding: 40px; border-radius: 20px; font-size: 30px; font-weight: bold; border: none; cursor: pointer; color: white; }
         .btn-out { background: #E91E63; } .btn-in { background: #4CAF50; }  
         
-        /* 表單區域優化 */
         .form-container { max-width: 500px; margin: 0 auto 15px auto; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; box-sizing: border-box; }
-        .form-group { margin-bottom: 12px; } .form-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: bold; color: #FFD700; }
+        .form-group { margin-bottom: 12px; } 
+        .form-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: bold; color: #FFD700; }
         .form-control { width: 100%; padding: 12px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
         
-        /* 語音區域專用樣式 */
-        .voice-box { display: flex; gap: 10px; align-items: flex-start; }
-        .voice-input { flex: 1; height: 80px; padding: 10px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; resize: none; }
-        .mic-btn { width: 60px; height: 80px; background: #555; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; flex-shrink: 0; }
+        .voice-box { display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px; }
+        .voice-input { flex: 1; height: 70px; padding: 10px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; resize: none; color: #333; font-weight: bold; }
+        .mic-btn { width: 60px; background: #555; border: none; border-radius: 8px; cursor: pointer; font-size: 24px; color: white; flex-shrink: 0; }
         .mic-btn.recording { background: #ff0000; animation: blink 1s infinite; }
-        .quick-send-btn { width: 100%; margin-top: 10px; padding: 12px; background: #FFD700; color: #333; border: none; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; box-sizing: border-box; }
+        .quick-send-btn { width: 100%; padding: 12px; background: #FFD700; color: #333; border: none; border-radius: 8px; font-weight: bold; font-size: 18px; cursor: pointer; }
 
         @keyframes blink { 50% { opacity: 0.5; } }
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin: 0 auto; }
@@ -45,9 +44,9 @@
         .batch-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #222; padding: 15px; z-index: 999; text-align: center; }
         .batch-btn { width: 90%; max-width: 500px; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; border: none; color: white; cursor: pointer; }
         
-        /* 帳篷區分段標題 */
+        /* 特別強調的分類標題 */
         .sub-group-title { width: 100%; color: #FFD700; padding: 10px 0; margin-top: 15px; font-weight: bold; font-size: 18px; border-bottom: 1px dashed #FFD700; }
-        .section-spacer { height: 30px; }
+        .spacer { height: 25px; }
     </style>
 </head>
 <body>
@@ -105,32 +104,24 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "", leaveTime = 0;
+        let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "";
 
-        // 語音文字強行轉換邏輯
-        function forceFixText(text) {
-            let t = text;
-            t = t.replace(/(\d+)[米M][\u4e00-\u9fa5a-zA-Z]*/g, "$1米Truss");
-            t = t.replace(/(\d+)[呎尺][\u4e00-\u9fa5a-zA-Z]*/g, "$1呎拱");
-            t = t.replace(/[三山杉]米/g, "3米Truss");
-            t = t.replace(/[兩量涼亮]米/g, "2米Truss");
-            t = t.replace(/cross|chars|刷|創|處|出/gi, "Truss");
-            t = t.replace(/死夾|吸夾|西夾/g, "C夾");
-            return t;
+        function autoFixText(t) {
+            return t.replace(/[三山杉]米/g, "3米Truss").replace(/[兩量涼亮]米/g, "2米Truss").replace(/[一乙]米/g, "1米Truss")
+                    .replace(/cross|chars|刷|創|處/gi, "Truss").replace(/死夾|吸夾|西夾/g, "C夾")
+                    .replace(/(\d+)[米M]/g, "$1米Truss").replace(/(\d+)[呎尺]/g, "$1呎拱");
         }
 
         let recognition;
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
             recognition.lang = 'zh-TW';
-            recognition.onresult = (event) => {
-                const text = event.results[0][0].transcript;
-                document.getElementById('eventTag').value += forceFixText(text) + " ";
+            recognition.onresult = (e) => {
+                const res = e.results[0][0].transcript;
+                document.getElementById('eventTag').value += autoFixText(res) + " ";
                 stopVisuals();
             };
-            recognition.onerror = () => stopVisuals();
-            recognition.onend = () => stopVisuals();
+            recognition.onend = stopVisuals;
         }
 
         function toggleVoiceRecognition() {
@@ -138,53 +129,44 @@
             if (btn.classList.contains('recording')) { recognition.stop(); } 
             else { recognition.start(); btn.classList.add('recording'); btn.innerText = "🛑"; }
         }
-
-        function stopVisuals() {
-            const btn = document.getElementById('voiceBtn');
-            btn.classList.remove('recording'); btn.innerText = "🎤";
-        }
+        function stopVisuals() { const btn = document.getElementById('voiceBtn'); btn.classList.remove('recording'); btn.innerText = "🎤"; }
 
         function quickSendVoice() {
             const user = document.getElementById('userName').value;
             const note = document.getElementById('eventTag').value;
-            if(!user || !note) return alert("請先選擇人員並說話");
-            db.ref('logs').push({ user, type: "純語音報備", note, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
-            alert("語音內容已送出！");
-            document.getElementById('eventTag').value = "";
+            if(!user || !note) return alert("請填人名並說話");
+            db.ref('logs').push({ user, type: "語音報備", note, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
+            alert("已送出"); document.getElementById('eventTag').value = "";
         }
 
-        // --- 器材清單與分類 ---
-        const trussMain = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss"];
+        // --- 清單分類 ---
+        const trussMain = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "Truss鐵板"];
+        const tentTop = ["3米快速帳(紅白)", "3米快速帳(白)", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)"];
         const tentFrames = ["骨架300*300", "骨架300*600", "骨架600*600"];
-        const tentAccs = ["3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(紅)", "3米頂篷(紅)", "3米帳篷燈", "3米水溝", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "6米水溝布", "6米圍布(白)", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "沙包"];
-        const stageItems = ["6x6舞台板", "3x6舞台板", "C夾", "墊箱"];
-
-        const allItems = [...trussMain, ...tentFrames, ...tentAccs, ...stageItems, "轉接頭", "Truss鐵板", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐"];
+        const tentAccs = ["3米圍布(白)", "3米圍布(紅)", "3米頂篷(紅)", "3米帳篷燈", "3米水溝", "6米水溝布", "6米圍布(白)", "6米帳篷燈", "營釘", "沙包"];
+        const othersMain = ["會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "6x6舞台板", "3x6舞台板", "C夾", "墊箱"];
 
         function openCategory(cat) {
-            currentCat = cat;
-            document.getElementById('categoryTitle').innerText = (cat === 'truss' ? '🏗️ Truss類' : cat === 'tent' ? '⛺ 帳篷類' : '📦 其它物料');
-            const container = document.getElementById('itemContainer');
-            container.innerHTML = '';
-
-            if (cat === 'truss') {
-                container.innerHTML += '<div class="sub-group-title">🏗️ Truss 主體</div>';
+            const container = document.getElementById('itemContainer'); container.innerHTML = '';
+            document.getElementById('categoryTitle').innerText = (cat==='truss'?'🏗️ Truss類':cat==='tent'?'⛺ 帳篷類':'📦 其它物料');
+            
+            if(cat === 'truss') {
+                container.innerHTML += '<div class="sub-group-title">🏗️ Truss 主體與配件</div>';
                 trussMain.forEach(n => container.appendChild(createItemCard(n)));
-                container.innerHTML += '<div class="sub-group-title">🛠️ 配件區</div>';
-                ["轉接頭", "Truss鐵板", "Truss斜撐"].forEach(n => container.appendChild(createItemCard(n)));
-            } 
-            else if (cat === 'tent') {
-                container.innerHTML += '<div class="sub-group-title">🏗️ 骨架區</div>';
+            } else if(cat === 'tent') {
+                container.innerHTML += '<div class="sub-group-title">⛺ 帳篷主體 (頂篷/拱)</div>';
+                tentTop.forEach(n => container.appendChild(createItemCard(n)));
+                
+                // --- 骨料放在帳篷區下方，並區隔開 ---
+                container.innerHTML += '<div class="spacer"></div><div class="sub-group-title">🏗️ 骨架料件 (300/600系列)</div>';
                 tentFrames.forEach(n => container.appendChild(createItemCard(n)));
-                container.innerHTML += '<div class="section-spacer"></div>'; // 中間間隔開
-                container.innerHTML += '<div class="sub-group-title">⛺ 帳篷配件區</div>';
+                
+                // --- 最後接配件區 ---
+                container.innerHTML += '<div class="spacer"></div><div class="sub-group-title">🛠️ 帳篷輔助配件 (圍布/營釘)</div>';
                 tentAccs.forEach(n => container.appendChild(createItemCard(n)));
-            } 
-            else if (cat === 'others') {
-                container.innerHTML += '<div class="sub-group-title">🎭 舞台相關</div>';
-                stageItems.forEach(n => container.appendChild(createItemCard(n)));
-                container.innerHTML += '<div class="sub-group-title">🪑 其它桌椅物料</div>';
-                ["會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿"].forEach(n => container.appendChild(createItemCard(n)));
+            } else {
+                container.innerHTML += '<div class="sub-group-title">📦 其他物料</div>';
+                othersMain.forEach(n => container.appendChild(createItemCard(n)));
             }
             showPage('listPage');
         }
@@ -193,7 +175,7 @@
             const card = document.createElement('div');
             card.className = 'item-card';
             card.innerHTML = `<div style="display:flex; justify-content:space-between; color:#333; margin-bottom:10px;"><b>${name}</b><span id="qty-${name}">...</span></div>
-                <div class="qty-input-group"><input type="number" id="input-${name}" class="input-num" value="${draft[name] || ''}" oninput="updateDraft('${name}', this.value)">
+                <div class="qty-input-group"><input type="number" id="input-${name}" class="input-num" oninput="updateDraft('${name}', this.value)">
                 <button class="submit-btn" style="background:${currentMode==='入庫'?'#4CAF50':'#E91E63'}" onclick="submitChange('${name}')">確認</button></div>`;
             db.ref('inventory/' + name).on('value', s => { if(document.getElementById(`qty-${name}`)) document.getElementById(`qty-${name}`).innerText = s.val() || 0; });
             return card;
@@ -207,7 +189,6 @@
             document.getElementById('batchBtn').style.background = (mode === '入庫' ? '#4CAF50' : '#E91E63');
             showPage('homePage');
         }
-
         function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function saveUser(v) { localStorage.setItem('bayi_user', v); }
         function updateDraft(n, v) { if (v && v !== "0") draft[n] = v; else delete draft[n]; }
@@ -216,36 +197,30 @@
             const user = document.getElementById('userName').value;
             const items = Object.keys(draft);
             if (!user || items.length === 0) return alert('請輸入數量');
-            if(confirm('確定送出？')) {
-                const event = document.getElementById('eventTag').value || "無備註";
-                items.forEach(name => {
-                    let val = parseInt(draft[name]);
-                    let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
-                    db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
-                    db.ref('logs').push({ user, name, val: delta, event, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
-                });
-                draft = {}; alert('送出成功'); location.reload();
-            }
+            const event = document.getElementById('eventTag').value || "無備註";
+            items.forEach(name => {
+                let delta = (currentMode === '入庫') ? Math.abs(parseInt(draft[name])) : -Math.abs(parseInt(draft[name]));
+                db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
+                db.ref('logs').push({ user, name, val: delta, event, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
+            });
+            draft = {}; alert('送出成功'); location.reload();
         }
 
         function submitChange(name) {
             const user = document.getElementById('userName').value;
             const val = parseInt(document.getElementById('input-' + name).value);
-            if (!user || isNaN(val)) return alert('請填寫人員與數量');
+            if (!user || isNaN(val)) return alert('填寫人員與數量');
             let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
             db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
             db.ref('logs').push({ user, name, val: delta, event: document.getElementById('eventTag').value || "無備註", date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
-            alert(name + ' 成功');
-            document.getElementById('input-' + name).value = '';
-            delete draft[name];
+            alert('成功'); document.getElementById('input-' + name).value = ''; delete draft[name];
         }
 
         function showSummary() {
-            const container = document.getElementById('summaryContainer');
-            container.innerHTML = '載入中...';
+            const container = document.getElementById('summaryContainer'); container.innerHTML = '載入中...';
             db.ref('inventory').once('value', snap => {
                 container.innerHTML = ''; const data = snap.val() || {};
-                [{t:"🏗️ Truss", i:trussMain}, {t:"⛺ 帳篷骨架", i:tentFrames}, {t:"🛠️ 帳篷配件", i:tentAccs}, {t:"📦 其他", i:stageItems}].forEach(g => {
+                [{t:"🏗️ Truss", i:trussMain}, {t:"⛺ 帳篷主體", i:tentTop}, {t:"🏗️ 骨料", i:tentFrames}, {t:"🛠️ 配件", i:tentAccs}, {t:"📦 其他", i:othersMain}].forEach(g => {
                     const title = document.createElement('div'); title.className = 'sub-group-title'; title.innerText = g.t; container.appendChild(title);
                     g.i.forEach(name => {
                         const row = document.createElement('div');
