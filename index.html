@@ -101,28 +101,39 @@
 
         let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "", leaveTime = 0;
 
-        // --- 核心：語音術語校正機 ---
+        // --- 核心：語音術語校正機 (增強版) ---
         function autoCorrect(text) {
-            const dictionary = {
-                "量米": "2米",
-                "兩米": "2米",
-                "三米": "3米",
-                "山米": "3米",
-                "一米": "1米",
-                "跨斯": "Truss",
-                "拉斯": "Truss",
-                "跨": "Truss",
-                "cross": "Truss",
-                "特拉斯": "Truss",
-                "脫拉斯": "Truss",
-                "死夾": "C夾",
-                "吸夾": "C夾"
-            };
+            // 使用正則表達式進行更強大的匹配
             let correctedText = text;
-            for (let key in dictionary) {
-                const regex = new RegExp(key, "gi");
-                correctedText = correctedText.replace(regex, dictionary[key]);
-            }
+            const dictionary = [
+                // 3米 Truss 系列
+                { key: /泰山米/gi, val: "3米Truss" },
+                { key: /[三山杉]米[創刷促出處跨]/gi, val: "3米Truss" },
+                { key: /[三山杉]米/gi, val: "3米" },
+                // 2米 Truss 系列
+                { key: /[兩量涼]米[創刷促出處跨]/gi, val: "2米Truss" },
+                { key: /[兩量涼]米/gi, val: "2米" },
+                // 1米 系列
+                { key: /一米/gi, val: "1米" },
+                // Truss 關鍵字
+                { key: /跨斯/gi, val: "Truss" },
+                { key: /拉斯/gi, val: "Truss" },
+                { key: /cross/gi, val: "Truss" },
+                { key: /特拉斯/gi, val: "Truss" },
+                { key: /脫拉斯/gi, val: "Truss" },
+                { key: /米[創刷促出處]/gi, val: "米Truss" },
+                // 其他配件
+                { key: /死夾/gi, val: "C夾" },
+                { key: /吸夾/gi, val: "C夾" },
+                { key: /吸假/gi, val: "C夾" },
+                { key: /[馬碼媽]蟻/gi, val: "馬椅" },
+                // 清理重複
+                { key: /TrussTruss/gi, val: "Truss" }
+            ];
+
+            dictionary.forEach(item => {
+                correctedText = correctedText.replace(item.key, item.val);
+            });
             return correctedText;
         }
 
@@ -140,7 +151,7 @@
                 stopVisuals();
             };
             recognition.onerror = () => stopVisuals();
-            recognition.onend = () => stopVisuals();
+            recognition.onend = stopVisuals;
         }
 
         function toggleVoiceRecognition() {
