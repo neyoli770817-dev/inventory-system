@@ -23,14 +23,14 @@
         .form-group { margin-bottom: 10px; position: relative; } .form-group label { display: block; margin-bottom: 5px; font-size: 14px; }
         .form-control { width: 100%; padding: 10px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
         
-        /* 麥克風與送出按鈕組合 */
-        .input-addon-group { position: absolute; right: 5px; bottom: 3px; display: flex; gap: 5px; }
-        .voice-btn, .mini-submit-btn { border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; color: white; }
-        .voice-btn { background: #555; }
-        .mini-submit-btn { background: #4CAF50; display: none; } /* 有字才出現 */
+        /* 留言區塊樣式 */
+        .comment-group { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+        .comment-input { flex: 1; padding: 12px; border-radius: 8px; border: none; font-size: 16px; }
+        .msg-send-btn { background: #FFD700; color: #4A0404; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; white-space: nowrap; height: 44px; }
+        .voice-btn { background: #555; border: none; border-radius: 50%; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white; }
         .voice-btn.recording { background: #ff0000; animation: blink 1s infinite; }
+        
         @keyframes blink { 50% { opacity: 0.5; } }
-
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin: 0 auto; }
         .menu-item { background: var(--btn-white); aspect-ratio: 1/1; border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; padding: 10px; }
         .menu-item img { width: 60px !important; height: 60px !important; object-fit: contain; }
@@ -67,13 +67,12 @@
                 </select>
             </div>
             <div class="form-group"><label>日期</label><input type="date" id="actionDate" class="form-control"></div>
-            <div class="form-group">
-                <label>場次名稱 / 備註</label>
-                <input type="text" id="eventTag" class="form-control" placeholder="輸入場次或按麥克風說話" oninput="checkNoteInput()">
-                <div class="input-addon-group">
-                    <button id="miniSubmitBtn" class="mini-submit-btn" onclick="submitBatch()" title="快速送出清單">✔️</button>
-                    <button id="voiceBtn" class="voice-btn" onclick="toggleVoiceRecognition()">🎤</button>
-                </div>
+            
+            <label style="font-size: 14px;">語音留言 / 外場回報</label>
+            <div class="comment-group">
+                <button id="voiceBtn" class="voice-btn" onclick="toggleVoiceRecognition()">🎤</button>
+                <input type="text" id="eventTag" class="comment-input" placeholder="按麥克風說話...">
+                <button class="msg-send-btn" onclick="submitJustMessage()">🚀 送出</button>
             </div>
         </div>
         <div class="menu-grid">
@@ -102,13 +101,6 @@
 
         let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "", leaveTime = 0;
 
-        // 檢查備註有無文字
-        function checkNoteInput() {
-            const note = document.getElementById('eventTag').value;
-            const miniBtn = document.getElementById('miniSubmitBtn');
-            miniBtn.style.display = note.length > 0 ? 'flex' : 'none';
-        }
-
         let recognition;
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -118,7 +110,6 @@
             recognition.onresult = (event) => {
                 const text = event.results[0][0].transcript;
                 document.getElementById('eventTag').value += text;
-                checkNoteInput();
                 stopVisuals();
             };
             recognition.onerror = () => stopVisuals();
@@ -142,6 +133,37 @@
             btn.classList.remove('recording');
             btn.innerText = "🎤";
         }
+
+        // 單獨送出留言的功能
+        function submitJustMessage() {
+            const user = document.getElementById('userName').value;
+            const msg = document.getElementById('eventTag').value;
+            const date = document.getElementById('actionDate').value;
+            if (!user) return alert('請先選擇人員');
+            if (!msg) return alert('請先輸入或語音留言');
+
+            db.ref('logs').push({
+                user: user,
+                name: "📢 語音回報",
+                val: "留言",
+                event: msg,
+                date: date,
+                time: new Date().toLocaleString()
+            });
+            
+            document.getElementById('eventTag').value = '';
+            alert('留言已送出！');
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) { leaveTime = Date.now(); } 
+            else {
+                if (leaveTime > 0 && (Date.now() - leaveTime) > 180000) {
+                    draft = {}; 
+                    if(document.getElementById('listPage').classList.contains('active')) openCategory(currentCat);
+                }
+            }
+        });
 
         const allItems = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "Truss鐵板", "Truss斜撐", "6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "墊箱", "12呎馬椅", "9呎馬椅", "8尺馬椅", "5呎馬椅", "3呎馬椅", "會議桌桌巾(黑145*270)", "會議桌桌巾(紅145*270)", "會議桌厚桌巾(紅145*270)", "香檳金椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150", "3米快速帳(紅白)", "3米快速帳(白)", "3米圍布(白)", "3米圍布(紅)", "3米頂篷(紅)", "3米帳篷燈", "3米水溝", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "6米水溝布", "6米圍布(白)", "6米帳篷燈", "營釘", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)", "骨架300*300", "骨架300*600", "骨架600*600", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "沙包", "C夾"];
         const trussMain = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss"];
@@ -212,9 +234,8 @@
         function submitBatch() {
             const user = document.getElementById('userName').value;
             const items = Object.keys(draft);
-            if (!user) return alert('請選擇人員');
-            if (items.length === 0) return alert('請至少輸入一個品項的數量');
-            if(confirm('確定送出目前勾選的所有清單？')) {
+            if (!user || items.length === 0) return alert('請輸入數量');
+            if(confirm('確定送出？')) {
                 const event = document.getElementById('eventTag').value || "無備註";
                 items.forEach(name => {
                     let val = parseInt(draft[name]);
@@ -222,7 +243,7 @@
                     db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
                     db.ref('logs').push({ user, name, val: delta, event, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
                 });
-                draft = {}; alert('整批送出成功'); location.reload();
+                draft = {}; alert('送出成功'); location.reload();
             }
         }
 
