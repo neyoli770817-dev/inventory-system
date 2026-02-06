@@ -1,197 +1,267 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#4A0404">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>八毅庫存管理系統-Abel專屬版</title>
+    <title>八毅庫存管理系統</title>
+    <link rel="apple-touch-icon" href="https://i.postimg.cc/XNCSk29x/八毅LOGO.jpg">
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
-        :root { --bg-wine: #4A0404; --btn-white: #FFFFFF; --text-dark: #333; --btn-in: #4CAF50; --btn-out: #E91E63; }
+        :root { --bg-wine: #4A0404; --btn-white: #FFFFFF; --text-dark: #333; }
         body { font-family: -apple-system, sans-serif; background-color: var(--bg-wine); color: white; margin: 0; padding: 10px; overflow-x: hidden; }
         .page { display: none; padding-bottom: 80px; } .page.active { display: block; }
+        .header { text-align: center; padding: 10px 0; background: var(--bg-wine); position: sticky; top: 0; z-index: 100; }
+        .mode-container { display: flex; flex-direction: column; gap: 20px; align-items: center; justify-content: center; height: 80vh; }
+        .mode-btn { width: 80%; padding: 40px; border-radius: 20px; font-size: 30px; font-weight: bold; border: none; cursor: pointer; color: white; }
+        .btn-out { background: #E91E63; } .btn-in { background: #4CAF50; }  
         
-        /* 首頁語音入口樣式 */
-        .title-area { text-align: center; padding: 10px 0; }
         .form-container { max-width: 500px; margin: 0 auto 15px auto; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; box-sizing: border-box; }
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; margin-bottom: 5px; color: #FFD700; font-size: 14px; font-weight: bold; }
-        .form-control { width: 100%; padding: 12px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; background: white; }
+        .form-group { margin-bottom: 12px; } 
+        .form-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: bold; color: #FFD700; }
+        .form-control { width: 100%; padding: 12px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
         
-        .voice-action-box { display: flex; flex-direction: column; gap: 8px; margin-top: 5px; }
-        .voice-row { display: flex; gap: 10px; align-items: stretch; }
-        .voice-input { flex-grow: 1; height: 90px; border-radius: 8px; border: none; padding: 10px; font-size: 18px; color: #333; resize: none; box-sizing: border-box; font-weight: bold; }
-        .mic-btn { width: 65px; background: #555; border: none; border-radius: 8px; font-size: 30px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        /* 語音區塊優化 */
+        .voice-box { display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px; }
+        .voice-input { flex: 1; height: 70px; padding: 10px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; resize: none; color: #333; font-weight: bold; }
+        .mic-btn { width: 60px; background: #555; border: none; border-radius: 8px; cursor: pointer; font-size: 24px; color: white; flex-shrink: 0; }
         .mic-btn.recording { background: #ff0000; animation: blink 1s infinite; }
-        .full-width-btn { width: 100%; padding: 14px; background: #FFD700; color: #333; border: none; border-radius: 8px; font-weight: bold; font-size: 18px; cursor: pointer; }
-        
+        .quick-send-btn { width: 100%; padding: 12px; background: #FFD700; color: #333; border: none; border-radius: 8px; font-weight: bold; font-size: 18px; cursor: pointer; }
+
         @keyframes blink { 50% { opacity: 0.5; } }
-
-        /* 入口大按鈕 */
-        .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin: 20px auto; }
-        .mode-item { border-radius: 18px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; aspect-ratio: 1/1; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .mode-item span { font-size: 45px; }
-        .mode-item b { font-size: 20px; margin-top: 10px; color: white; }
-
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 500px; margin: 0 auto; }
         .menu-item { background: var(--btn-white); aspect-ratio: 1/1; border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; padding: 10px; }
         .menu-item img { width: 60px !important; height: 60px !important; object-fit: contain; }
-        .menu-item span { color: var(--text-dark); font-weight: bold; font-size: 18px; margin-top: 5px; }
-
+        .menu-item span { color: var(--text-dark); font-weight: bold; font-size: 16px; margin-top: 5px; }
         .item-card { background: white; color: var(--text-dark); border-radius: 12px; padding: 15px; margin-bottom: 10px; }
         .qty-input-group { display: flex; align-items: center; gap: 10px; border-top: 1px solid #eee; padding-top: 10px; }
-        .input-num { width: 85px; padding: 10px; border: 1px solid #ccc; border-radius: 8px; text-align: center; font-size: 20px; font-weight: bold; }
-        .submit-btn { flex: 1; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; }
-        
+        .input-num { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 5px; text-align: center; font-size: 18px; }
+        .submit-btn { flex: 1; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; }
         .back-btn { background: none; border: 1px solid white; color: white; padding: 8px 12px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; }
-        .sub-group-title { width: 100%; color: #FFD700; padding: 10px 0; margin-top: 15px; font-weight: bold; font-size: 18px; border-bottom: 2px solid #FFD700; }
+        .batch-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #222; padding: 15px; z-index: 999; text-align: center; }
+        .batch-btn { width: 90%; max-width: 500px; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; border: none; color: white; cursor: pointer; }
+        
+        /* 分類標題與間隔 */
+        .sub-group-title { width: 100%; color: #FFD700; padding: 10px 0; margin-top: 15px; font-weight: bold; font-size: 18px; border-bottom: 1px dashed #FFD700; }
+        .spacer { height: 25px; }
     </style>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 </head>
 <body>
 
-    <div id="homePage" class="page active">
-        <div class="title-area"><h2>八毅庫存管理</h2></div>
+    <div id="modePage" class="page active">
+        <div class="header"><h1>八毅庫存系統</h1></div>
+        <div class="mode-container">
+            <button class="mode-btn btn-out" onclick="setMode('取用')">📤 出庫 (拿取)</button>
+            <button class="mode-btn btn-in" onclick="setMode('入庫')">📥 入庫 (歸還)</button>
+            <button class="back-btn" onclick="showSummary()" style="width:80%; font-size:20px;">📊 查看庫存總量</button>
+        </div>
+    </div>
+
+    <div id="homePage" class="page">
+        <div class="header"><button class="back-btn" onclick="location.reload()">← 回首頁</button><h1 id="modeTitle"></h1></div>
         <div class="form-container">
             <div class="form-group">
                 <label>員工姓名</label>
-                <select id="userName" class="form-control" onchange="localStorage.setItem('bayi_user', this.value)">
+                <select id="userName" class="form-control" onchange="saveUser(this.value)"> 
                     <option value="">請選擇人員...</option>
                     <option>邱正豪</option><option>邱宥瑋</option><option>廖恆光</option><option>林睿</option><option>董坤舜</option><option>黎光庭</option>
                 </select>
             </div>
+            <div class="form-group"><label>日期</label><input type="date" id="actionDate" class="form-control"></div>
             <div class="form-group">
-                <label>語音報備 / 留言 (大字顯示)</label>
-                <div class="voice-action-box">
-                    <div class="voice-row">
-                        <textarea id="eventTag" class="voice-input" placeholder="按麥克風說話..."></textarea>
-                        <button id="voiceBtn" class="mic-btn" onclick="toggleSpeech()">🎤</button>
-                    </div>
-                    <button class="full-width-btn" onclick="submitNoteOnly()">🚀 直接送出報備內容</button>
+                <label>語音備註 / 快速報備</label>
+                <div class="voice-box">
+                    <textarea id="eventTag" class="voice-input" placeholder="請說話..."></textarea>
+                    <button id="voiceBtn" class="mic-btn" onclick="toggleVoiceRecognition()">🎤</button>
                 </div>
+                <button class="quick-send-btn" onclick="quickSendVoice()">🚀 直接送出語音內容</button>
             </div>
         </div>
-        <div class="mode-grid">
-            <div class="mode-item" style="background:var(--btn-in);" onclick="setMode(1)"><span>📥</span><b>入庫模式</b></div>
-            <div class="mode-item" style="background:var(--btn-out);" onclick="setMode(-1)"><span>📤</span><b>出庫模式</b></div>
-        </div>
-    </div>
-
-    <div id="catPage" class="page">
-        <div class="header" style="padding:10px;"><button class="back-btn" onclick="showPage('homePage')">← 返回</button><h2 id="modeTitle" style="display:inline; margin-left:15px;"></h2></div>
         <div class="menu-grid">
-            <div class="menu-item" onclick="openCat('truss')"><img src="https://i.postimg.cc/GtDsw45n/OIP.png"><span>Truss區</span></div>
-            <div class="menu-item" onclick="openCat('tent')"><img src="https://i.postimg.cc/KYxJNfXy/3tent001.png"><span>帳篷區</span></div>
-            <div class="menu-item" onclick="showSummary()"><div style="font-size:45px">📊</div><span>即時庫存</span></div>
-            <div class="menu-item" onclick="openCat('others')"><img src="https://i.postimg.cc/T1pdFnDg/OIP-(1).png"><span>其它物料</span></div>
+            <div class="menu-item" onclick="openCategory('truss')"><img src="https://i.postimg.cc/GtDsw45n/OIP.png"><span>Truss類</span></div>
+            <div class="menu-item" onclick="openCategory('tent')"><img src="https://i.postimg.cc/KYxJNfXy/3tent001.png"><span>帳篷類</span></div>
+            <div class="menu-item" onclick="showSummary()"><div style="font-size:50px">📊</div><span>即時庫存看</span></div>
+            <div class="menu-item" onclick="openCategory('others')"><img src="https://i.postimg.cc/T1pdFnDg/OIP-(1).png"><span>其它物料</span></div>
         </div>
     </div>
 
     <div id="listPage" class="page">
-        <div style="padding: 10px;"><button class="back-btn" onclick="showPage('catPage')">← 返回</button><h2 id="catTitle" style="display:inline; margin-left:15px;"></h2></div>
-        <div id="itemContainer" style="max-width:500px; margin: 0 auto; padding: 10px;"></div>
+        <div class="header"><button class="back-btn" onclick="showPage('homePage')">← 返回類別</button><h2 id="categoryTitle" style="color:white; margin:0;"></h2></div>
+        <div id="itemContainer" style="max-width:600px; margin:0 auto; padding:10px;"></div>
+        <div class="batch-bar"><button id="batchBtn" class="batch-btn" onclick="submitBatch()">🚀 一鍵全部送出</button></div>
+    </div>
+
+    <div id="summaryPage" class="page">
+        <div class="header"><button class="back-btn" onclick="location.reload()">← 回首頁</button><h1>即時庫存總量</h1></div>
+        <div id="summaryContainer" style="max-width:600px; margin:0 auto; padding:15px; padding-bottom:80px;"></div>
     </div>
 
     <script>
-        const firebaseConfig = { apiKey: "AIzaSyBNiATgf4yVR5qZ5CEmGClfm22yjq2fBlI", authDomain: "bayi-inventory.firebaseapp.com", projectId: "bayi-inventory", databaseURL: "https://bayi-inventory-default-rtdb.firebaseio.com" };
+        const firebaseConfig = { apiKey: "AIzaSyBNiATgf4yVR5qZ5CEmGClfm22yjq2fBlI", authDomain: "bayi-inventory.firebaseapp.com", projectId: "bayi-inventory", databaseURL: "https://bayi-inventory-default-rtdb.firebaseio.com", storageBucket: "bayi-inventory.firebasestorage.app", messagingSenderId: "494997600674", appId: "1:494997600674:web:711588fab8d8ae70eb5afb" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let currentMode = 1;
+        let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "", leaveTime = 0;
 
-        // --- 語音辨識與修正 ---
+        // 語音自動修正
+        function autoFixText(t) {
+            return t.replace(/[三山杉]米/g, "3米Truss").replace(/[兩量涼亮]米/g, "2米Truss").replace(/[一乙]米/g, "1米Truss")
+                    .replace(/cross|chars|刷|創|處/gi, "Truss").replace(/死夾|吸夾|西夾/g, "C夾")
+                    .replace(/(\d+)[米M]/g, "$1米Truss").replace(/(\d+)[呎尺]/g, "$1呎拱");
+        }
+
         let recognition;
-        if ('webkitSpeechRecognition' in window) {
-            recognition = new webkitSpeechRecognition();
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
             recognition.lang = 'zh-TW';
+            recognition.interimResults = false;
             recognition.onresult = (e) => {
-                let t = e.results[0][0].transcript;
-                t = t.replace(/踹[死屎]|ㄔㄨㄚ[ˋ\s]|戳司|跨司|米[刷創處出促]/gi, "米Truss");
-                t = t.replace(/[三山杉]米/g, "3米Truss");
-                t = t.replace(/[兩量涼亮]米/g, "2米Truss");
-                t = t.replace(/水溝(?!布)/g, "水溝布");
-                document.getElementById('eventTag').value += t + " ";
+                const res = e.results[0][0].transcript;
+                document.getElementById('eventTag').value += autoFixText(res) + " ";
                 stopVisuals();
             };
+            recognition.onerror = stopVisuals;
             recognition.onend = stopVisuals;
         }
 
-        function toggleSpeech() {
+        function toggleVoiceRecognition() {
             const btn = document.getElementById('voiceBtn');
             if (btn.classList.contains('recording')) { recognition.stop(); } 
-            else { recognition.start(); btn.classList.add('recording'); btn.innerText = "🛑"; }
+            else { 
+                if (!recognition) return alert("您的裝置不支援語音辨識");
+                recognition.start(); btn.classList.add('recording'); btn.innerText = "🛑"; 
+            }
         }
         function stopVisuals() { const btn = document.getElementById('voiceBtn'); btn.classList.remove('recording'); btn.innerText = "🎤"; }
 
-        // --- 分類與品項 (精準骨架分類) ---
-        const trussGroup = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss", "轉接頭", "Truss鐵板", "Truss斜撐"];
-        
-        const tentMain = ["12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "3米快速帳(白)", "3米快速帳(紅白)", "6米頂篷(白)"];
-        const boneGroup = ["骨架300*300", "骨架300*600", "骨架600*600", "6米骨料", "3x6骨料"]; // 骨架獨立區
-        const tentAcc = ["3米水溝布", "6米水溝布", "3米圍布(白)", "6米圍布(白)", "營釘", "沙包", "帳篷燈"];
-
-        const otherGroup = ["6x6舞台板", "3x6舞台板", "Layher板", "電風扇", "吊扇", "馬椅(12呎)", "馬椅(9呎)", "馬椅(6呎)", "會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "C夾"];
-
-        function setMode(m) {
-            currentMode = m;
-            document.getElementById('modeTitle').innerText = (m === 1 ? '📥 模式：入庫' : '📤 模式：出庫');
-            document.getElementById('modeTitle').style.color = (m === 1 ? '#4CAF50' : '#E91E63');
-            showPage('catPage');
+        function quickSendVoice() {
+            const user = document.getElementById('userName').value;
+            const note = document.getElementById('eventTag').value;
+            if(!user || !note) return alert("請填人名並說話");
+            db.ref('logs').push({ user, type: "語音報備", note, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
+            alert("已送出"); document.getElementById('eventTag').value = "";
         }
 
-        function openCat(cat) {
-            const container = document.getElementById('itemContainer');
-            container.innerHTML = '';
-            if(cat === 'truss') {
-                container.innerHTML += '<div class="sub-group-title">🏗️ Truss 與配件</div>';
-                trussGroup.forEach(n => container.appendChild(createCard(n)));
-            } else if(cat === 'tent') {
-                container.innerHTML += '<div class="sub-group-title">⛺ 帳篷主體</div>';
-                tentMain.forEach(n => container.appendChild(createCard(n)));
-                container.innerHTML += '<div class="sub-group-title">🏗️ 骨架 / 骨料專區</div>'; // 骨架分出來
-                boneGroup.forEach(n => container.appendChild(createCard(n)));
-                container.innerHTML += '<div class="sub-group-title">🛠️ 帳篷配件</div>';
-                tentAcc.forEach(n => container.appendChild(createCard(n)));
-            } else {
-                container.innerHTML += '<div class="sub-group-title">📦 其他物料與設備</div>';
-                otherGroup.forEach(n => container.appendChild(createCard(n)));
+        // 閒置3分鐘自動清空
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) { leaveTime = Date.now(); } 
+            else {
+                if (leaveTime > 0 && (Date.now() - leaveTime) > 180000) {
+                    draft = {}; 
+                    if(document.getElementById('listPage').classList.contains('active') && currentCat) openCategory(currentCat);
+                    alert('離開超過 3 分鐘，為保險起見已清空待送出數據');
+                }
             }
-            document.getElementById('catTitle').innerText = (cat==='truss'?'Truss類':cat==='tent'?'帳篷類':'其它物料');
+        });
+
+        // --- 完整物料清單 (依照Abel要求排序) ---
+        const trussMain = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss"];
+        const trussAccs = ["轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "Truss鐵板", "Truss斜撐"];
+        
+        const tentTop = ["3米快速帳(紅白)", "3米快速帳(白)", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)"];
+        const tentFrames = ["骨架300*300", "骨架300*600", "骨架600*600"];
+        const tentAccs = ["3米圍布(白)", "3米圍布(紅)", "3米頂篷(紅)", "3米帳篷燈", "3米水溝", "6米水溝布", "6米圍布(白)", "6米帳篷燈", "營釘", "沙包"];
+        
+        const otherStage = ["6x6舞台板", "3x6舞台板", "Layher板", "C夾", "墊箱"];
+        const otherItems = ["會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "12呎馬椅", "9呎馬椅", "8尺馬椅", "5呎馬椅", "3呎馬椅", "會議桌桌巾(黑145*270)", "會議桌桌巾(紅145*270)", "會議桌厚桌巾(紅145*270)", "香檳金椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150"];
+
+        let currentCat = '';
+        function openCategory(cat) {
+            currentCat = cat;
+            const container = document.getElementById('itemContainer'); container.innerHTML = '';
+            document.getElementById('categoryTitle').innerText = (cat==='truss'?'🏗️ Truss類':cat==='tent'?'⛺ 帳篷類':'📦 其它物料');
+            
+            if(cat === 'truss') {
+                container.innerHTML += '<div class="sub-group-title">🏗️ Truss 主體</div>';
+                trussMain.forEach(n => container.appendChild(createItemCard(n)));
+                container.innerHTML += '<div class="spacer"></div><div class="sub-group-title">🛠️ Truss 專用配件 (轉接頭/斜撐/鐵板)</div>';
+                trussAccs.forEach(n => container.appendChild(createItemCard(n)));
+            } else if(cat === 'tent') {
+                container.innerHTML += '<div class="sub-group-title">⛺ 帳篷主體 (頂篷/拱)</div>';
+                tentTop.forEach(n => container.appendChild(createItemCard(n)));
+                container.innerHTML += '<div class="spacer"></div><div class="sub-group-title">🏗️ 骨架料件 (300/600系列)</div>';
+                tentFrames.forEach(n => container.appendChild(createItemCard(n)));
+                container.innerHTML += '<div class="spacer"></div><div class="sub-group-title">🛠️ 帳篷輔助配件 (圍布/營釘/沙包)</div>';
+                tentAccs.forEach(n => container.appendChild(createItemCard(n)));
+            } else {
+                container.innerHTML += '<div class="sub-group-title">🎭 舞台區 (板材/C夾)</div>';
+                otherStage.forEach(n => container.appendChild(createItemCard(n)));
+                container.innerHTML += '<div class="spacer"></div><div class="sub-group-title">🪑 桌椅/馬椅/布類</div>';
+                otherItems.forEach(n => container.appendChild(createItemCard(n)));
+            }
             showPage('listPage');
         }
 
-        function createCard(name) {
+        function createItemCard(name) {
             const card = document.createElement('div');
             card.className = 'item-card';
-            const color = currentMode === 1 ? '#4CAF50' : '#E91E63';
-            card.innerHTML = `<div style="display:flex; justify-content:space-between; font-size:18px;"><b>${name}</b><span id="st-${name}">...</span></div>
-                <div class="qty-input-group">
-                    <input type="number" id="in-${name}" class="input-num" placeholder="0">
-                    <button class="submit-btn" style="background:${color}" onclick="doSubmit('${name}')">${currentMode===1?'確認入庫':'確認出庫'}</button>
-                </div>`;
-            db.ref('inventory/'+name).on('value', s => { if(document.getElementById('st-'+name)) document.getElementById('st-'+name).innerText = s.val()||0; });
+            card.innerHTML = `<div style="display:flex; justify-content:space-between; color:#333; margin-bottom:10px;"><b>${name}</b><span id="qty-${name}">...</span></div>
+                <div class="qty-input-group"><input type="number" id="input-${name}" class="input-num" value="${draft[name] || ''}" oninput="updateDraft('${name}', this.value)">
+                <button class="submit-btn" style="background:${currentMode==='入庫'?'#4CAF50':'#E91E63'}" onclick="submitChange('${name}')">確認</button></div>`;
+            db.ref('inventory/' + name).on('value', s => { if(document.getElementById(`qty-${name}`)) document.getElementById(`qty-${name}`).innerText = s.val() || 0; });
             return card;
         }
 
-        function doSubmit(name) {
-            const user = document.getElementById('userName').value;
-            const val = parseInt(document.getElementById('in-'+name).value);
-            if(!user || isNaN(val)) return alert('請選人員與填數量');
-            const delta = val * currentMode;
-            db.ref('inventory/'+name).transaction(c => (c||0) + delta);
-            db.ref('logs').push({ user, name, val: delta, note: document.getElementById('eventTag').value, time: new Date().toLocaleString() });
-            alert(name + ' 成功');
-            document.getElementById('in-'+name).value = '';
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('modeTitle').innerText = (mode === '取用' ? '📤 出庫模式' : '📥 入庫模式');
+            document.getElementById('actionDate').valueAsDate = new Date();
+            if(savedUser) document.getElementById('userName').value = savedUser;
+            const btn = document.getElementById('batchBtn');
+            btn.style.background = (mode === '入庫' ? '#4CAF50' : '#E91E63');
+            btn.innerText = (mode === '入庫' ? '📥 一鍵全部入庫' : '📤 一鍵全部出庫');
+            showPage('homePage');
         }
-
-        function submitNoteOnly() {
-            const user = document.getElementById('userName').value;
-            if(!user) return alert('請選人員');
-            db.ref('logs').push({ user, type: "語音報備", note: document.getElementById('eventTag').value, time: new Date().toLocaleString() });
-            alert('報備已送出'); document.getElementById('eventTag').value = '';
-        }
-
         function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-        window.onload = () => { if(localStorage.getItem('bayi_user')) document.getElementById('userName').value = localStorage.getItem('bayi_user'); };
+        function saveUser(v) { localStorage.setItem('bayi_user', v); }
+        function updateDraft(n, v) { if (v && v !== "0") draft[n] = v; else delete draft[n]; }
+
+        function submitBatch() {
+            const user = document.getElementById('userName').value;
+            const items = Object.keys(draft);
+            if (!user || items.length === 0) return alert('請輸入數量');
+            const event = document.getElementById('eventTag').value || "無備註";
+            if(confirm('確定送出？')) {
+                items.forEach(name => {
+                    let delta = (currentMode === '入庫') ? Math.abs(parseInt(draft[name])) : -Math.abs(parseInt(draft[name]));
+                    db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
+                    db.ref('logs').push({ user, name, val: delta, event, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
+                });
+                draft = {}; alert('送出成功'); location.reload();
+            }
+        }
+
+        function submitChange(name) {
+            const user = document.getElementById('userName').value;
+            const val = parseInt(document.getElementById('input-' + name).value);
+            if (!user || isNaN(val)) return alert('填寫人員與數量');
+            let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
+            db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
+            db.ref('logs').push({ user, name, val: delta, event: document.getElementById('eventTag').value || "無備註", date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
+            alert('成功'); document.getElementById('input-' + name).value = ''; delete draft[name];
+        }
+
+        function showSummary() {
+            const container = document.getElementById('summaryContainer'); container.innerHTML = '載入中...';
+            db.ref('inventory').once('value', snap => {
+                container.innerHTML = ''; const data = snap.val() || {};
+                [{t:"🏗️ Truss", i:[...trussMain, ...trussAccs]}, {t:"⛺ 帳篷", i:[...tentTop, ...tentFrames, ...tentAccs]}, {t:"📦 其他", i:[...otherStage, ...otherItems]}].forEach(g => {
+                    const title = document.createElement('div'); title.className = 'sub-group-title'; title.innerText = g.t; container.appendChild(title);
+                    g.i.forEach(name => {
+                        const row = document.createElement('div');
+                        row.style.cssText = "background:white; color:black; margin:5px 0; padding:10px; border-radius:8px; display:flex; justify-content:space-between;";
+                        row.innerHTML = `<span>${name}</span><b>${data[name] || 0}</b>`;
+                        container.appendChild(row);
+                    });
+                });
+            });
+            showPage('summaryPage');
+        }
     </script>
 </body>
 </html>
