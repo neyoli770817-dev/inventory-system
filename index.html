@@ -66,7 +66,7 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>🎤 快速語音報備</label>
+                <label>🎤 快速語音回覆</label>
                 <div class="voice-box">
                     <textarea id="entryVoiceInput" class="voice-input" placeholder="按麥克風說話..."></textarea>
                     <button id="entryMicBtn" class="mic-btn" onclick="toggleVoice('entry')">🎤</button>
@@ -193,8 +193,8 @@
             // 如果是在首頁(入口)送出，日期預設今天
             const dateVal = source === 'entry' ? new Date().toISOString().split('T')[0] : document.getElementById('actionDate').value;
             
-            db.ref('logs').push({ user, type: "語音報備", note, date: dateVal, time: new Date().toLocaleString() });
-            alert("報備已送出"); 
+            db.ref('logs').push({ user, type: "語音回覆", note, date: dateVal, time: new Date().toLocaleString() });
+            alert("回覆已送出"); 
             document.getElementById(inputId).value = "";
         }
 
@@ -308,3 +308,4 @@
     </script>
 </body>
 </html>
+
