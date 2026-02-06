@@ -16,18 +16,20 @@
         body { font-family: -apple-system, sans-serif; background-color: var(--bg-wine); color: white; margin: 0; padding: 10px; overflow-x: hidden; }
         .page { display: none; padding-bottom: 80px; } .page.active { display: block; }
         .header { text-align: center; padding: 10px 0; background: var(--bg-wine); position: sticky; top: 0; z-index: 100; }
-        .mode-container { display: flex; flex-direction: column; gap: 20px; align-items: center; justify-content: center; height: 80vh; }
-        .mode-btn { width: 80%; padding: 40px; border-radius: 20px; font-size: 30px; font-weight: bold; border: none; cursor: pointer; color: white; }
+        
+        /* 入口頁面專用調整 */
+        .mode-container { display: flex; flex-direction: column; gap: 15px; align-items: center; justify-content: flex-start; padding-top: 10px; }
+        .mode-btn { width: 100%; padding: 30px; border-radius: 15px; font-size: 28px; font-weight: bold; border: none; cursor: pointer; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .btn-out { background: #E91E63; } .btn-in { background: #4CAF50; }  
         
-        .form-container { max-width: 500px; margin: 0 auto 15px auto; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; box-sizing: border-box; }
+        .form-container { width: 100%; max-width: 500px; margin: 0 auto 15px auto; background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; box-sizing: border-box; }
         .form-group { margin-bottom: 12px; } 
         .form-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: bold; color: #FFD700; }
-        .form-control { width: 100%; padding: 12px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
+        .form-control { width: 100%; padding: 12px; border-radius: 8px; border: none; font-size: 18px; box-sizing: border-box; font-weight: bold; }
         
         .voice-box { display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px; }
-        .voice-input { flex: 1; height: 70px; padding: 10px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; resize: none; color: #333; font-weight: bold; }
-        .mic-btn { width: 60px; background: #555; border: none; border-radius: 8px; cursor: pointer; font-size: 24px; color: white; flex-shrink: 0; }
+        .voice-input { flex: 1; height: 70px; padding: 10px; border-radius: 8px; border: none; font-size: 18px; box-sizing: border-box; resize: none; color: #333; font-weight: bold; }
+        .mic-btn { width: 60px; background: #555; border: none; border-radius: 8px; cursor: pointer; font-size: 24px; color: white; flex-shrink: 0; display: flex; align-items: center; justify-content: center;}
         .mic-btn.recording { background: #ff0000; animation: blink 1s infinite; }
         .quick-send-btn { width: 100%; padding: 12px; background: #FFD700; color: #333; border: none; border-radius: 8px; font-weight: bold; font-size: 18px; cursor: pointer; }
 
@@ -54,10 +56,29 @@
 
     <div id="modePage" class="page active">
         <div class="header"><h1>八毅庫存系統</h1></div>
+        
+        <div class="form-container">
+            <div class="form-group">
+                <label>👤 人員 (同步選取)</label>
+                <select id="entryUserName" class="form-control" onchange="syncUser(this.value)"> 
+                    <option value="">請選擇人員...</option>
+                    <option>邱正豪</option><option>邱宥瑋</option><option>廖恆光</option><option>林睿</option><option>董坤舜</option><option>黎光庭</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>🎤 快速語音報備</label>
+                <div class="voice-box">
+                    <textarea id="entryVoiceInput" class="voice-input" placeholder="按麥克風說話..."></textarea>
+                    <button id="entryMicBtn" class="mic-btn" onclick="toggleVoice('entry')">🎤</button>
+                </div>
+                <button class="quick-send-btn" onclick="quickSendVoice('entry')">🚀 直接送出</button>
+            </div>
+        </div>
+
         <div class="mode-container">
             <button class="mode-btn btn-out" onclick="setMode('取用')">📤 出庫 (拿取)</button>
             <button class="mode-btn btn-in" onclick="setMode('入庫')">📥 入庫 (歸還)</button>
-            <button class="back-btn" onclick="showSummary()" style="width:80%; font-size:20px;">📊 查看庫存總量</button>
+            <button class="back-btn" onclick="showSummary()" style="width:100%; font-size:20px; border: 1px solid #aaa;">📊 查看庫存總量</button>
         </div>
     </div>
 
@@ -66,19 +87,19 @@
         <div class="form-container">
             <div class="form-group">
                 <label>員工姓名</label>
-                <select id="userName" class="form-control" onchange="saveUser(this.value)"> 
+                <select id="userName" class="form-control" onchange="syncUser(this.value)"> 
                     <option value="">請選擇人員...</option>
                     <option>邱正豪</option><option>邱宥瑋</option><option>廖恆光</option><option>林睿</option><option>董坤舜</option><option>黎光庭</option>
                 </select>
             </div>
             <div class="form-group"><label>日期</label><input type="date" id="actionDate" class="form-control"></div>
             <div class="form-group">
-                <label>語音備註 / 快速回覆</label>
+                <label>語音備註</label>
                 <div class="voice-box">
                     <textarea id="eventTag" class="voice-input" placeholder="請說話..."></textarea>
-                    <button id="voiceBtn" class="mic-btn" onclick="toggleVoiceRecognition()">🎤</button>
+                    <button id="voiceBtn" class="mic-btn" onclick="toggleVoice('home')">🎤</button>
                 </div>
-                <button class="quick-send-btn" onclick="quickSendVoice()">🚀 直接送出語音內容</button>
+                <button class="quick-send-btn" onclick="quickSendVoice('home')">🚀 直接送出語音內容</button>
             </div>
         </div>
         <div class="menu-grid">
@@ -105,9 +126,23 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "", leaveTime = 0;
+        let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "";
+        let currentVoiceTarget = ''; // 紀錄現在語音要填入哪個框
 
-        // --- 語音校正 (只修諧音，不亂加字) ---
+        // 初始化人員 (同步兩個選單)
+        function initUser() {
+            if(savedUser) {
+                document.getElementById('userName').value = savedUser;
+                document.getElementById('entryUserName').value = savedUser;
+            }
+        }
+        function syncUser(val) {
+            localStorage.setItem('bayi_user', val);
+            document.getElementById('userName').value = val;
+            document.getElementById('entryUserName').value = val;
+        }
+
+        // --- 語音功能 (支援首頁與內頁) ---
         function autoFixText(t) {
             return t.replace(/踹[死屎]|ㄔㄨㄚ[ˋ\s]|戳司|跨司/gi, "Truss")
                     .replace(/死夾|吸夾|西夾/g, "C夾");
@@ -119,25 +154,48 @@
             recognition.lang = 'zh-TW';
             recognition.onresult = (e) => {
                 const res = e.results[0][0].transcript;
-                document.getElementById('eventTag').value += autoFixText(res) + " ";
+                const targetId = currentVoiceTarget === 'entry' ? 'entryVoiceInput' : 'eventTag';
+                document.getElementById(targetId).value += autoFixText(res) + " ";
                 stopVisuals();
             };
             recognition.onend = stopVisuals;
         }
 
-        function toggleVoiceRecognition() {
-            const btn = document.getElementById('voiceBtn');
-            if (btn.classList.contains('recording')) { recognition.stop(); } 
-            else { recognition.start(); btn.classList.add('recording'); btn.innerText = "🛑"; }
+        function toggleVoice(source) {
+            currentVoiceTarget = source; // 標記是哪邊按的
+            const btnId = source === 'entry' ? 'entryMicBtn' : 'voiceBtn';
+            const btn = document.getElementById(btnId);
+            
+            if (btn.classList.contains('recording')) { 
+                recognition.stop(); 
+            } else { 
+                recognition.start(); 
+                btn.classList.add('recording'); 
+                btn.innerText = "🛑"; 
+            }
         }
-        function stopVisuals() { const btn = document.getElementById('voiceBtn'); btn.classList.remove('recording'); btn.innerText = "🎤"; }
 
-        function quickSendVoice() {
-            const user = document.getElementById('userName').value;
-            const note = document.getElementById('eventTag').value;
-            if(!user || !note) return alert("請填人名並說話");
-            db.ref('logs').push({ user, type: "語音報備", note, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
-            alert("報備已送出"); document.getElementById('eventTag').value = "";
+        function stopVisuals() { 
+            ['entryMicBtn', 'voiceBtn'].forEach(id => {
+                const btn = document.getElementById(id);
+                btn.classList.remove('recording'); 
+                btn.innerText = "🎤"; 
+            });
+        }
+
+        function quickSendVoice(source) {
+            const user = document.getElementById('userName').value; // 已同步，取哪一個都一樣
+            const inputId = source === 'entry' ? 'entryVoiceInput' : 'eventTag';
+            const note = document.getElementById(inputId).value;
+            
+            if(!user || !note) return alert("請確認人員已選擇，並說話錄音");
+            
+            // 如果是在首頁(入口)送出，日期預設今天
+            const dateVal = source === 'entry' ? new Date().toISOString().split('T')[0] : document.getElementById('actionDate').value;
+            
+            db.ref('logs').push({ user, type: "語音報備", note, date: dateVal, time: new Date().toLocaleString() });
+            alert("報備已送出"); 
+            document.getElementById(inputId).value = "";
         }
 
         // --- 物料清單 ---
@@ -192,7 +250,9 @@
             currentMode = mode;
             document.getElementById('modeTitle').innerText = (mode === '取用' ? '📤 出庫模式' : '📥 入庫模式');
             document.getElementById('actionDate').valueAsDate = new Date();
-            if(savedUser) document.getElementById('userName').value = savedUser;
+            // syncUser is already handled by onchange, but make sure UI is consistent
+            if(savedUser) { document.getElementById('userName').value = savedUser; }
+            
             const btn = document.getElementById('batchBtn');
             btn.style.background = (mode === '入庫' ? '#4CAF50' : '#E91E63');
             btn.innerText = (mode === '入庫' ? '📥 一鍵全部入庫' : '📤 一鍵全部出庫');
@@ -200,7 +260,6 @@
         }
 
         function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-        function saveUser(v) { localStorage.setItem('bayi_user', v); }
         function updateDraft(n, v) { if (v && v !== "0") draft[n] = v; else delete draft[n]; }
 
         function submitBatch() {
@@ -244,6 +303,8 @@
             });
             showPage('summaryPage');
         }
+
+        window.onload = initUser;
     </script>
 </body>
 </html>
