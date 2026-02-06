@@ -25,7 +25,6 @@
         .form-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: bold; color: #FFD700; }
         .form-control { width: 100%; padding: 12px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; }
         
-        /* 語音區塊優化 */
         .voice-box { display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px; }
         .voice-input { flex: 1; height: 70px; padding: 10px; border-radius: 8px; border: none; font-size: 16px; box-sizing: border-box; resize: none; color: #333; font-weight: bold; }
         .mic-btn { width: 60px; background: #555; border: none; border-radius: 8px; cursor: pointer; font-size: 24px; color: white; flex-shrink: 0; }
@@ -37,15 +36,16 @@
         .menu-item { background: var(--btn-white); aspect-ratio: 1/1; border-radius: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; padding: 10px; }
         .menu-item img { width: 60px !important; height: 60px !important; object-fit: contain; }
         .menu-item span { color: var(--text-dark); font-weight: bold; font-size: 16px; margin-top: 5px; }
-        .item-card { background: white; color: var(--text-dark); border-radius: 12px; padding: 15px; margin-bottom: 10px; }
-        .qty-input-group { display: flex; align-items: center; gap: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        
+        .item-card { background: white; color: var(--text-dark); border-radius: 12px; padding: 15px; margin-bottom: 10px; position: relative; }
+        .stock-label { position: absolute; right: 15px; top: 15px; font-size: 16px; color: #E91E63; font-weight: bold; }
+        .qty-input-group { display: flex; align-items: center; gap: 10px; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
         .input-num { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 5px; text-align: center; font-size: 18px; }
         .submit-btn { flex: 1; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; }
         .back-btn { background: none; border: 1px solid white; color: white; padding: 8px 12px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; }
         .batch-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #222; padding: 15px; z-index: 999; text-align: center; }
         .batch-btn { width: 90%; max-width: 500px; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; border: none; color: white; cursor: pointer; }
         
-        /* 分類標題與間隔 */
         .sub-group-title { width: 100%; color: #FFD700; padding: 10px 0; margin-top: 15px; font-weight: bold; font-size: 18px; border-bottom: 1px dashed #FFD700; }
         .spacer { height: 25px; }
     </style>
@@ -73,7 +73,7 @@
             </div>
             <div class="form-group"><label>日期</label><input type="date" id="actionDate" class="form-control"></div>
             <div class="form-group">
-                <label>語音備註 / 快速報備</label>
+                <label>語音備註 / 快速回覆</label>
                 <div class="voice-box">
                     <textarea id="eventTag" class="voice-input" placeholder="請說話..."></textarea>
                     <button id="voiceBtn" class="mic-btn" onclick="toggleVoiceRecognition()">🎤</button>
@@ -107,35 +107,28 @@
 
         let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "", leaveTime = 0;
 
-        // 語音自動修正
+        // --- 語音校正 (只修諧音，不亂加字) ---
         function autoFixText(t) {
-            return t.replace(/[三山杉]米/g, "3米Truss").replace(/[兩量涼亮]米/g, "2米Truss").replace(/[一乙]米/g, "1米Truss")
-                    .replace(/cross|chars|刷|創|處/gi, "Truss").replace(/死夾|吸夾|西夾/g, "C夾")
-                    .replace(/(\d+)[米M]/g, "$1米Truss").replace(/(\d+)[呎尺]/g, "$1呎拱");
+            return t.replace(/踹[死屎]|ㄔㄨㄚ[ˋ\s]|戳司|跨司/gi, "Truss")
+                    .replace(/死夾|吸夾|西夾/g, "C夾");
         }
 
         let recognition;
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
             recognition.lang = 'zh-TW';
-            recognition.interimResults = false;
             recognition.onresult = (e) => {
                 const res = e.results[0][0].transcript;
                 document.getElementById('eventTag').value += autoFixText(res) + " ";
                 stopVisuals();
             };
-            recognition.onerror = stopVisuals;
             recognition.onend = stopVisuals;
         }
 
         function toggleVoiceRecognition() {
             const btn = document.getElementById('voiceBtn');
             if (btn.classList.contains('recording')) { recognition.stop(); } 
-            else { 
-                if (!recognition) return alert("您的裝置不支援語音辨識");
-                recognition.start(); btn.classList.add('recording'); btn.innerText = "🛑"; 
-            }
+            else { recognition.start(); btn.classList.add('recording'); btn.innerText = "🛑"; }
         }
         function stopVisuals() { const btn = document.getElementById('voiceBtn'); btn.classList.remove('recording'); btn.innerText = "🎤"; }
 
@@ -144,28 +137,16 @@
             const note = document.getElementById('eventTag').value;
             if(!user || !note) return alert("請填人名並說話");
             db.ref('logs').push({ user, type: "語音報備", note, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
-            alert("已送出"); document.getElementById('eventTag').value = "";
+            alert("報備已送出"); document.getElementById('eventTag').value = "";
         }
 
-        // 閒置3分鐘自動清空
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) { leaveTime = Date.now(); } 
-            else {
-                if (leaveTime > 0 && (Date.now() - leaveTime) > 180000) {
-                    draft = {}; 
-                    if(document.getElementById('listPage').classList.contains('active') && currentCat) openCategory(currentCat);
-                    alert('離開超過 3 分鐘，為保險起見已清空待送出數據');
-                }
-            }
-        });
-
-        // --- 完整物料清單 (依照Abel要求排序) ---
+        // --- 物料清單 ---
         const trussMain = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss"];
         const trussAccs = ["轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "Truss鐵板", "Truss斜撐"];
         
         const tentTop = ["3米快速帳(紅白)", "3米快速帳(白)", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)"];
-        const tentFrames = ["骨架300*300", "骨架300*600", "骨架600*600"];
-        const tentAccs = ["3米圍布(白)", "3米圍布(紅)", "3米頂篷(紅)", "3米帳篷燈", "3米水溝", "6米水溝布", "6米圍布(白)", "6米帳篷燈", "營釘", "沙包"];
+        const tentFrames = ["骨架300*300", "骨架300*600", "骨架600*600", "6米骨料", "3x6骨料"];
+        const tentAccs = ["3米帳篷燈", "6米帳篷燈", "3米圍布(白)", "3米圍布(紅)", "3米水溝", "6米水溝布", "6米圍布(白)", "營釘", "沙包"];
         
         const otherStage = ["6x6舞台板", "3x6舞台板", "Layher板", "C夾", "墊箱"];
         const otherItems = ["會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "12呎馬椅", "9呎馬椅", "8尺馬椅", "5呎馬椅", "3呎馬椅", "會議桌桌巾(黑145*270)", "會議桌桌巾(紅145*270)", "會議桌厚桌巾(紅145*270)", "香檳金椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150"];
@@ -179,17 +160,17 @@
             if(cat === 'truss') {
                 container.innerHTML += '<div class="sub-group-title">🏗️ Truss 主體</div>';
                 trussMain.forEach(n => container.appendChild(createItemCard(n)));
-                container.innerHTML += '<div class="spacer"></div><div class="sub-group-title">🛠️ Truss 專用配件 (轉接頭/斜撐/鐵板)</div>';
+                container.innerHTML += '<div class="spacer"></div><div class="sub-group-title">🛠️ Truss 專用配件</div>';
                 trussAccs.forEach(n => container.appendChild(createItemCard(n)));
             } else if(cat === 'tent') {
                 container.innerHTML += '<div class="sub-group-title">⛺ 帳篷主體 (頂篷/拱)</div>';
                 tentTop.forEach(n => container.appendChild(createItemCard(n)));
-                container.innerHTML += '<div class="spacer"></div><div class="sub-group-title">🏗️ 骨架料件 (300/600系列)</div>';
+                container.innerHTML += '<div class="spacer"></div><div class="sub-group-title">🏗️ 骨架 / 骨料專區</div>';
                 tentFrames.forEach(n => container.appendChild(createItemCard(n)));
-                container.innerHTML += '<div class="spacer"></div><div class="sub-group-title">🛠️ 帳篷輔助配件 (圍布/營釘/沙包)</div>';
+                container.innerHTML += '<div class="spacer"></div><div class="sub-group-title">🛠️ 帳篷配件 (含燈)</div>';
                 tentAccs.forEach(n => container.appendChild(createItemCard(n)));
             } else {
-                container.innerHTML += '<div class="sub-group-title">🎭 舞台區 (板材/C夾)</div>';
+                container.innerHTML += '<div class="sub-group-title">🎭 舞台區</div>';
                 otherStage.forEach(n => container.appendChild(createItemCard(n)));
                 container.innerHTML += '<div class="spacer"></div><div class="sub-group-title">🪑 桌椅/馬椅/布類</div>';
                 otherItems.forEach(n => container.appendChild(createItemCard(n)));
@@ -200,8 +181,8 @@
         function createItemCard(name) {
             const card = document.createElement('div');
             card.className = 'item-card';
-            card.innerHTML = `<div style="display:flex; justify-content:space-between; color:#333; margin-bottom:10px;"><b>${name}</b><span id="qty-${name}">...</span></div>
-                <div class="qty-input-group"><input type="number" id="input-${name}" class="input-num" value="${draft[name] || ''}" oninput="updateDraft('${name}', this.value)">
+            card.innerHTML = `<div style="display:flex; justify-content:space-between; color:#333; margin-bottom:10px;"><b>${name}</b><span class="stock-label" id="qty-${name}">...</span></div>
+                <div class="qty-input-group"><input type="number" id="input-${name}" class="input-num" value="${draft[name] || ''}" oninput="updateDraft('${name}', this.value)" placeholder="數量">
                 <button class="submit-btn" style="background:${currentMode==='入庫'?'#4CAF50':'#E91E63'}" onclick="submitChange('${name}')">確認</button></div>`;
             db.ref('inventory/' + name).on('value', s => { if(document.getElementById(`qty-${name}`)) document.getElementById(`qty-${name}`).innerText = s.val() || 0; });
             return card;
@@ -217,6 +198,7 @@
             btn.innerText = (mode === '入庫' ? '📥 一鍵全部入庫' : '📤 一鍵全部出庫');
             showPage('homePage');
         }
+
         function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function saveUser(v) { localStorage.setItem('bayi_user', v); }
         function updateDraft(n, v) { if (v && v !== "0") draft[n] = v; else delete draft[n]; }
@@ -250,7 +232,7 @@
             const container = document.getElementById('summaryContainer'); container.innerHTML = '載入中...';
             db.ref('inventory').once('value', snap => {
                 container.innerHTML = ''; const data = snap.val() || {};
-                [{t:"🏗️ Truss", i:[...trussMain, ...trussAccs]}, {t:"⛺ 帳篷", i:[...tentTop, ...tentFrames, ...tentAccs]}, {t:"📦 其他", i:[...otherStage, ...otherItems]}].forEach(g => {
+                [{t:"🏗️ Truss", i:[...trussMain, ...trussAccs]}, {t:"⛺ 帳篷與骨架", i:[...tentTop, ...tentFrames, ...tentAccs]}, {t:"📦 其他", i:[...otherStage, ...otherItems]}].forEach(g => {
                     const title = document.createElement('div'); title.className = 'sub-group-title'; title.innerText = g.t; container.appendChild(title);
                     g.i.forEach(name => {
                         const row = document.createElement('div');
