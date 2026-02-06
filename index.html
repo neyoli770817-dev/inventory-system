@@ -142,10 +142,22 @@
             document.getElementById('entryUserName').value = val;
         }
 
-        // --- 語音功能 (支援首頁與內頁) ---
+        // --- 語音功能 (已優化校正邏輯，不重複生成 Truss) ---
         function autoFixText(t) {
-            return t.replace(/踹[死屎]|ㄔㄨㄚ[ˋ\s]|戳司|跨司/gi, "Truss")
-                    .replace(/死夾|吸夾|西夾/g, "C夾");
+            if (!t) return "";
+            let res = t;
+            // 正則表達式統一校正諧音
+            const trussPattern = /跨司|戳司|踹[死屎]|處死|出事|屈尺|ㄔㄨㄚ[ˋ\s]*/gi;
+            res = res.replace(trussPattern, "Truss");
+
+            // 配件與米數校正
+            res = res.replace(/死夾|吸夾|西夾/g, "C夾");
+            res = res.replace(/一米/g, "1米").replace(/兩米|二米/g, "2米").replace(/三米/g, "3米");
+
+            // 去除可能重複的 Truss
+            res = res.replace(/(Truss\s*)+/gi, "Truss ");
+
+            return res.trim();
         }
 
         let recognition;
@@ -178,8 +190,10 @@
         function stopVisuals() { 
             ['entryMicBtn', 'voiceBtn'].forEach(id => {
                 const btn = document.getElementById(id);
-                btn.classList.remove('recording'); 
-                btn.innerText = "🎤"; 
+                if (btn) {
+                    btn.classList.remove('recording'); 
+                    btn.innerText = "🎤"; 
+                }
             });
         }
 
@@ -198,7 +212,7 @@
             document.getElementById(inputId).value = "";
         }
 
-        // --- 物料清單 ---
+        // --- 物料清單 (保持原樣) ---
         const trussMain = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss"];
         const trussAccs = ["轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "Truss鐵板", "Truss斜撐"];
         
@@ -250,7 +264,6 @@
             currentMode = mode;
             document.getElementById('modeTitle').innerText = (mode === '取用' ? '📤 出庫模式' : '📥 入庫模式');
             document.getElementById('actionDate').valueAsDate = new Date();
-            // syncUser is already handled by onchange, but make sure UI is consistent
             if(savedUser) { document.getElementById('userName').value = savedUser; }
             
             const btn = document.getElementById('batchBtn');
@@ -308,4 +321,3 @@
     </script>
 </body>
 </html>
-
