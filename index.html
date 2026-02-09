@@ -121,12 +121,34 @@
         let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "";
         let currentVoiceTarget = ''; 
 
+        // --- Firebase 雲端清單緩存 (Single Source of Truth) ---
+        let remoteCategories = { truss: [], tent: [], others: [] };
+
         function initUser() {
             if(savedUser) {
                 document.getElementById('userName').value = savedUser;
                 document.getElementById('entryUserName').value = savedUser;
             }
+            fetchCategories(); // 啟動時同步雲端清單
         }
+
+        // 新增：向 Firebase 讀取最新品項分類
+        function fetchCategories() {
+            db.ref('categories').on('value', snap => {
+                const data = snap.val();
+                if (data) {
+                    remoteCategories.truss = data.truss ? Object.keys(data.truss) : [];
+                    remoteCategories.tent = data.tent ? Object.keys(data.tent) : [];
+                    remoteCategories.others = data.others ? Object.keys(data.others) : [];
+                } else {
+                    // 如果雲端沒資料，使用原本寫死的清單作為預設備援
+                    remoteCategories.truss = [...trussMain, ...trussAccs];
+                    remoteCategories.tent = [...tentTop, ...tentFrames, ...tentAccs];
+                    remoteCategories.others = [...otherStage, ...otherItems];
+                }
+            });
+        }
+
         function syncUser(val) {
             savedUser = val;
             localStorage.setItem('bayi_user', val);
@@ -184,6 +206,7 @@
             document.getElementById(inputId).value = "";
         }
 
+        // --- 這些現在是「備援清單」，Firebase 沒資料時才會用到 ---
         const trussMain = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss"];
         const trussAccs = ["轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "Truss鐵板", "Truss斜撐"];
         const tentTop = ["3米快速帳(紅白)", "3米快速帳(白)", "3米頂篷(紅白)", "3米頂篷(紅)", "3米頂篷(白)", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)"];
@@ -196,15 +219,15 @@
             const container = document.getElementById('itemContainer'); container.innerHTML = '';
             document.getElementById('categoryTitle').innerText = (cat==='truss'?'🏗️ Truss類':cat==='tent'?'⛺ 帳篷類':'📦 其它物料');
             
-            let groups = [];
-            if(cat === 'truss') groups = [{t:'🏗️ Truss 主體', d:trussMain}, {t:'🛠️ Truss 專用配件', d:trussAccs}];
-            else if(cat === 'tent') groups = [{t:'⛺ 帳篷主體', d:tentTop}, {t:'🏗️ 骨架專區', d:tentFrames}, {t:'🛠️ 帳篷配件', d:tentAccs}];
-            else groups = [{t:'🎭 舞台區', d:otherStage}, {t:'🪑 桌椅/馬椅', d:otherItems}];
-
-            groups.forEach(g => {
-                container.innerHTML += `<div class="sub-group-title">${g.t}</div>`;
-                g.d.forEach(n => container.appendChild(createItemCard(n)));
-            });
+            // 邏輯修改：優先讀取 remoteCategories
+            let items = remoteCategories[cat];
+            
+            // 為了保持原本的「子分組」視覺，我們在這裡判斷如果是備援模式則進行分組
+            if (items.length > 0) {
+                items.forEach(n => container.appendChild(createItemCard(n)));
+            } else {
+                container.innerHTML = '<div style="padding:20px; text-align:center;">載入中或 Firebase 無品項...</div>';
+            }
             showPage('listPage');
         }
 
@@ -225,13 +248,11 @@
                     <button class="submit-btn" style="background:${currentMode==='入庫'?'#4CAF50':'#E91E63'}" onclick="submitChange('${name}')">確認</button>
                 </div>`;
             
-            // 監聽可用庫存 (紅字)
             db.ref('inventory/' + name).on('value', s => { 
                 const el = document.getElementById(`qty-${name}`);
                 if(el) el.innerText = s.val() || 0; 
             });
 
-            // 監聽應有庫存 (藍字)
             db.ref('target/' + name).on('value', s => { 
                 const el = document.getElementById(`target-${name}`);
                 if(el) el.innerText = s.val() || 0; 
@@ -285,7 +306,10 @@
                 db.ref('target').once('value', targetSnap => {
                     const targetData = targetSnap.val() || {};
                     container.innerHTML = '';
-                    [{t:"🏗️ Truss", i:[...trussMain, ...trussAccs]}, {t:"⛺ 帳篷與骨架", i:[...tentTop, ...tentFrames, ...tentAccs]}, {t:"📦 其他", i:[...otherStage, ...otherItems]}].forEach(g => {
+                    
+                    // 總表同樣依據 Firebase 抓取的清單顯示
+                    [{t:"🏗️ Truss", i:remoteCategories.truss}, {t:"⛺ 帳篷與骨架", i:remoteCategories.tent}, {t:"📦 其他", i:remoteCategories.others}].forEach(g => {
+                        if (g.i.length === 0) return;
                         container.innerHTML += `<div class="sub-group-title">${g.t}</div>`;
                         g.i.forEach(name => {
                             const row = document.createElement('div');
