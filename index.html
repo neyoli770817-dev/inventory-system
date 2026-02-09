@@ -43,7 +43,6 @@
         .batch-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #222; padding: 15px; z-index: 999; text-align: center; }
         .batch-btn { width: 90%; max-width: 500px; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; border: none; color: white; cursor: pointer; }
         .sub-group-title { width: 100%; color: #FFD700; padding: 10px 0; margin-top: 15px; font-weight: bold; font-size: 18px; border-bottom: 1px dashed #FFD700; }
-        .spacer { height: 25px; }
     </style>
 </head>
 <body>
@@ -120,32 +119,20 @@
 
         let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "";
         let currentVoiceTarget = ''; 
-
-        // --- Firebase 雲端清單緩存 (Single Source of Truth) ---
-        let remoteCategories = { truss: [], tent: [], others: [] };
+        let remoteCategories = {}; // 儲存三層結構
 
         function initUser() {
             if(savedUser) {
                 document.getElementById('userName').value = savedUser;
                 document.getElementById('entryUserName').value = savedUser;
             }
-            fetchCategories(); // 啟動時同步雲端清單
+            fetchCategories(); 
         }
 
-        // 新增：向 Firebase 讀取最新品項分類
+        // 修改：讀取三層結構
         function fetchCategories() {
             db.ref('categories').on('value', snap => {
-                const data = snap.val();
-                if (data) {
-                    remoteCategories.truss = data.truss ? Object.keys(data.truss) : [];
-                    remoteCategories.tent = data.tent ? Object.keys(data.tent) : [];
-                    remoteCategories.others = data.others ? Object.keys(data.others) : [];
-                } else {
-                    // 如果雲端沒資料，使用原本寫死的清單作為預設備援
-                    remoteCategories.truss = [...trussMain, ...trussAccs];
-                    remoteCategories.tent = [...tentTop, ...tentFrames, ...tentAccs];
-                    remoteCategories.others = [...otherStage, ...otherItems];
-                }
+                remoteCategories = snap.val() || {};
             });
         }
 
@@ -206,27 +193,29 @@
             document.getElementById(inputId).value = "";
         }
 
-        // --- 這些現在是「備援清單」，Firebase 沒資料時才會用到 ---
-        const trussMain = ["3米Truss", "2米Truss", "1米Truss", "60Truss", "50Truss", "40Truss", "30Truss", "25Truss", "20Truss", "15Truss", "10Truss"];
-        const trussAccs = ["轉接頭", "10°一體轉接頭", "15°轉接頭", "10°轉接頭", "Truss鐵板", "Truss斜撐"];
-        const tentTop = ["3米快速帳(紅白)", "3米快速帳(白)", "3米頂篷(紅白)", "3米頂篷(紅)", "3米頂篷(白)", "3米6頂棚(紅)", "6米頂篷(白)", "6米頂篷(紅白)", "6米頂篷(紅)", "6米頂篷(透明)", "12呎拱", "15呎拱", "20呎拱", "24呎拱", "30呎拱", "15呎頭圍", "15呎頭圍(紅)", "20呎頭圍", "20呎頭圍(紅)", "24呎頭圍", "24呎頭圍(紅)", "30呎頭圍", "12呎頂棚(白)", "12呎頂棚(紅白)", "15呎頂棚(白)", "15呎頂棚(紅白)", "20呎頂棚(白)", "20呎頂棚(紅白)", "24呎頂棚(白)", "24呎頂棚(紅白)", "30呎頂棚(白)", "30呎頂棚(紅白)"];
-        const tentFrames = ["骨架300*300", "骨架300*600", "骨架600*600"];
-        const tentAccs = ["3米帳篷燈", "6米帳篷燈", "3米圍布(白)", "3米圍布(紅)", "3米水溝", "6米水溝布", "6米圍布(白)", "營釘", "沙包"];
-        const otherStage = ["6x6舞台板", "3x6舞台板", "Layher板", "C夾", "墊箱"];
-        const otherItems = ["會議桌", "黑金剛", "點心椅", "紅龍", "三角錐", "三角錐連桿", "電風扇", "吊扇", "三步梯", "一步梯", "垃圾架", "12呎馬椅", "9呎馬椅", "8尺馬椅", "5呎馬椅", "3呎馬椅", "會議桌桌巾(黑145*270)", "會議桌桌巾(紅145*270)", "會議桌厚桌巾(紅145*270)", "香檳金椅套", "舞台黑圍 15m*90", "舞台黑圍 15m*150", "舞台黑圍 120m*150"];
-
+        // 修改：支援分層顯示
         function openCategory(cat) {
-            const container = document.getElementById('itemContainer'); container.innerHTML = '';
+            const container = document.getElementById('itemContainer'); 
+            container.innerHTML = '';
             document.getElementById('categoryTitle').innerText = (cat==='truss'?'🏗️ Truss類':cat==='tent'?'⛺ 帳篷類':'📦 其它物料');
             
-            // 邏輯修改：優先讀取 remoteCategories
-            let items = remoteCategories[cat];
-            
-            // 為了保持原本的「子分組」視覺，我們在這裡判斷如果是備援模式則進行分組
-            if (items.length > 0) {
-                items.forEach(n => container.appendChild(createItemCard(n)));
+            const subCats = remoteCategories[cat];
+            if (subCats) {
+                for (let subTitle in subCats) {
+                    // 畫出小區標題
+                    const titleDiv = document.createElement('div');
+                    titleDiv.className = 'sub-group-title';
+                    titleDiv.innerText = subTitle;
+                    container.appendChild(titleDiv);
+
+                    // 畫出該小區品項
+                    const items = Object.keys(subCats[subTitle]);
+                    items.forEach(itemName => {
+                        container.appendChild(createItemCard(itemName));
+                    });
+                }
             } else {
-                container.innerHTML = '<div style="padding:20px; text-align:center;">載入中或 Firebase 無品項...</div>';
+                container.innerHTML = '<div style="padding:20px; text-align:center;">資料載入中...</div>';
             }
             showPage('listPage');
         }
@@ -307,22 +296,28 @@
                     const targetData = targetSnap.val() || {};
                     container.innerHTML = '';
                     
-                    // 總表同樣依據 Firebase 抓取的清單顯示
-                    [{t:"🏗️ Truss", i:remoteCategories.truss}, {t:"⛺ 帳篷與骨架", i:remoteCategories.tent}, {t:"📦 其他", i:remoteCategories.others}].forEach(g => {
-                        if (g.i.length === 0) return;
-                        container.innerHTML += `<div class="sub-group-title">${g.t}</div>`;
-                        g.i.forEach(name => {
-                            const row = document.createElement('div');
-                            row.style.cssText = "background:white; color:black; margin:5px 0; padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;";
-                            row.innerHTML = `<span>${name}</span>
-                                <div>
-                                    <b style="color:#E91E63;">${invData[name] || 0}</b> 
-                                    <span style="color:#ccc; margin:0 4px;">/</span> 
-                                    <b style="color:#2196F3;">${targetData[name] || 0}</b>
-                                </div>`;
-                            container.appendChild(row);
-                        });
-                    });
+                    const groupNames = {truss: "🏗️ Truss 類", tent: "⛺ 帳篷類", others: "📦 其他物料"};
+
+                    for (let mainKey in remoteCategories) {
+                        container.innerHTML += `<div class="sub-group-title" style="margin-top:20px; color:#FFD700; background:rgba(0,0,0,0.3); padding:10px;">${groupNames[mainKey] || mainKey}</div>`;
+                        
+                        const subCats = remoteCategories[mainKey];
+                        for (let subTitle in subCats) {
+                            container.innerHTML += `<div style="padding:5px 10px; font-size:14px; color:#aaa;">● ${subTitle}</div>`;
+                            const items = Object.keys(subCats[subTitle]);
+                            items.forEach(name => {
+                                const row = document.createElement('div');
+                                row.style.cssText = "background:white; color:black; margin:5px 10px; padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;";
+                                row.innerHTML = `<span>${name}</span>
+                                    <div>
+                                        <b style="color:#E91E63;">${invData[name] || 0}</b> 
+                                        <span style="color:#ccc; margin:0 4px;">/</span> 
+                                        <b style="color:#2196F3;">${targetData[name] || 0}</b>
+                                    </div>`;
+                                container.appendChild(row);
+                            });
+                        }
+                    }
                 });
             });
             showPage('summaryPage');
