@@ -113,217 +113,251 @@
     </div>
 
     <script>
-        const firebaseConfig = { apiKey: "AIzaSyBNiATgf4yVR5qZ5CEmGClfm22yjq2fBlI", authDomain: "bayi-inventory.firebaseapp.com", projectId: "bayi-inventory", databaseURL: "https://bayi-inventory-default-rtdb.firebaseio.com", storageBucket: "bayi-inventory.firebasestorage.app", messagingSenderId: "494997600674", appId: "1:494997600674:web:711588fab8d8ae70eb5afb" };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+    const firebaseConfig = { 
+        apiKey: "AIzaSyBNiATgf4yVR5qZ5CEmGClfm22yjq2fBlI", 
+        authDomain: "bayi-inventory.firebaseapp.com", 
+        projectId: "bayi-inventory", 
+        databaseURL: "https://bayi-inventory-default-rtdb.firebaseio.com", 
+        storageBucket: "bayi-inventory.firebasestorage.app", 
+        messagingSenderId: "494997600674", 
+        appId: "1:494997600674:web:711588fab8d8ae70eb5afb" 
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-        let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "";
-        let currentVoiceTarget = ''; 
-        let remoteCategories = {}; // 儲存三層結構
+    let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "";
+    let currentVoiceTarget = ''; 
+    let remoteCategories = {}; 
 
-        function initUser() {
-            if(savedUser) {
-                document.getElementById('userName').value = savedUser;
-                document.getElementById('entryUserName').value = savedUser;
+    // ✅ 全域監聽：這兩段放在最外面，只要資料一變，全 App 數字秒改
+    db.ref('inventory').on('value', snap => {
+        const data = snap.val() || {};
+        for (let name in data) {
+            const el = document.getElementById(`qty-${name}`);
+            if (el) el.innerText = data[name];
+        }
+    });
+
+    db.ref('target').on('value', snap => {
+        const data = snap.val() || {};
+        for (let name in data) {
+            const el = document.getElementById(`target-${name}`);
+            if (el) el.innerText = data[name];
+        }
+    });
+
+    function initUser() {
+        if(savedUser) {
+            if(document.getElementById('userName')) document.getElementById('userName').value = savedUser;
+            if(document.getElementById('entryUserName')) document.getElementById('entryUserName').value = savedUser;
+        }
+        fetchCategories(); 
+    }
+
+    function fetchCategories() {
+        db.ref('categories').on('value', snap => {
+            remoteCategories = snap.val() || {};
+        });
+    }
+
+    function syncUser(val) {
+        savedUser = val;
+        localStorage.setItem('bayi_user', val);
+        if(document.getElementById('userName')) document.getElementById('userName').value = val;
+        if(document.getElementById('entryUserName')) document.getElementById('entryUserName').value = val;
+    }
+
+    function autoFixText(t) {
+        if (!t) return "";
+        let res = t;
+        const trussPattern = /跨司|戳司|踹[死屎]|處死|出事|屈尺|ㄔㄨㄚ[ˋ\s]*/gi;
+        res = res.replace(trussPattern, "Truss");
+        res = res.replace(/死夾|吸夾|西夾/g, "C夾");
+        res = res.replace(/一米/g, "1米").replace(/兩米|二米/g, "2米").replace(/三米/g, "3米");
+        res = res.replace(/(Truss\s*)+/gi, "Truss ");
+        return res.trim();
+    }
+
+    let recognition;
+    if ('webkitSpeechRecognition' in window) {
+        recognition = new webkitSpeechRecognition();
+        recognition.lang = 'zh-TW';
+        recognition.onresult = (e) => {
+            const res = e.results[0][0].transcript;
+            const targetId = currentVoiceTarget === 'entry' ? 'entryVoiceInput' : 'eventTag';
+            document.getElementById(targetId).value += autoFixText(res) + " ";
+            stopVisuals();
+        };
+        recognition.onend = stopVisuals;
+    }
+
+    function toggleVoice(source) {
+        currentVoiceTarget = source;
+        const btnId = source === 'entry' ? 'entryMicBtn' : 'voiceBtn';
+        const btn = document.getElementById(btnId);
+        if (btn.classList.contains('recording')) { recognition.stop(); } 
+        else { recognition.start(); btn.classList.add('recording'); btn.innerText = "🛑"; }
+    }
+
+    function stopVisuals() { 
+        ['entryMicBtn', 'voiceBtn'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) { btn.classList.remove('recording'); btn.innerText = "🎤"; }
+        });
+    }
+
+    function quickSendVoice(source) {
+        const user = savedUser;
+        const inputId = source === 'entry' ? 'entryVoiceInput' : 'eventTag';
+        const note = document.getElementById(inputId).value;
+        if(!user || !note) return alert("請確認人員已選擇，並說話錄音");
+        const dateVal = source === 'entry' ? new Date().toISOString().split('T')[0] : document.getElementById('actionDate').value;
+        db.ref('logs').push({ user, type: "語音回覆", note, date: dateVal, time: new Date().toLocaleString() });
+        alert("回覆已送出"); 
+        document.getElementById(inputId).value = "";
+    }
+
+    function openCategory(cat) {
+        const container = document.getElementById('itemContainer'); 
+        container.innerHTML = '';
+        document.getElementById('categoryTitle').innerText = (cat==='truss'?'🏗️ Truss類':cat==='tent'?'⛺ 帳篷類':'📦 其它物料');
+        
+        const subCats = remoteCategories[cat];
+        if (subCats) {
+            for (let subTitle in subCats) {
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'sub-group-title';
+                titleDiv.innerText = subTitle;
+                container.appendChild(titleDiv);
+
+                const items = Object.keys(subCats[subTitle]);
+                items.forEach(itemName => {
+                    container.appendChild(createItemCard(itemName));
+                });
             }
-            fetchCategories(); 
+            // ✅ 打開頁面時手動觸發一次數據填充，確保數字瞬間出現
+            refreshDigits();
+        } else {
+            container.innerHTML = '<div style="padding:20px; text-align:center;">資料載入中...</div>';
         }
+        showPage('listPage');
+    }
 
-        // 修改：讀取三層結構
-        function fetchCategories() {
-            db.ref('categories').on('value', snap => {
-                remoteCategories = snap.val() || {};
-            });
-        }
-
-        function syncUser(val) {
-            savedUser = val;
-            localStorage.setItem('bayi_user', val);
-            if(document.getElementById('userName')) document.getElementById('userName').value = val;
-            if(document.getElementById('entryUserName')) document.getElementById('entryUserName').value = val;
-        }
-
-        function autoFixText(t) {
-            if (!t) return "";
-            let res = t;
-            const trussPattern = /跨司|戳司|踹[死屎]|處死|出事|屈尺|ㄔㄨㄚ[ˋ\s]*/gi;
-            res = res.replace(trussPattern, "Truss");
-            res = res.replace(/死夾|吸夾|西夾/g, "C夾");
-            res = res.replace(/一米/g, "1米").replace(/兩米|二米/g, "2米").replace(/三米/g, "3米");
-            res = res.replace(/(Truss\s*)+/gi, "Truss ");
-            return res.trim();
-        }
-
-        let recognition;
-        if ('webkitSpeechRecognition' in window) {
-            recognition = new webkitSpeechRecognition();
-            recognition.lang = 'zh-TW';
-            recognition.onresult = (e) => {
-                const res = e.results[0][0].transcript;
-                const targetId = currentVoiceTarget === 'entry' ? 'entryVoiceInput' : 'eventTag';
-                document.getElementById(targetId).value += autoFixText(res) + " ";
-                stopVisuals();
-            };
-            recognition.onend = stopVisuals;
-        }
-
-        function toggleVoice(source) {
-            currentVoiceTarget = source;
-            const btnId = source === 'entry' ? 'entryMicBtn' : 'voiceBtn';
-            const btn = document.getElementById(btnId);
-            if (btn.classList.contains('recording')) { recognition.stop(); } 
-            else { recognition.start(); btn.classList.add('recording'); btn.innerText = "🛑"; }
-        }
-
-        function stopVisuals() { 
-            ['entryMicBtn', 'voiceBtn'].forEach(id => {
-                const btn = document.getElementById(id);
-                if (btn) { btn.classList.remove('recording'); btn.innerText = "🎤"; }
-            });
-        }
-
-        function quickSendVoice(source) {
-            const user = savedUser;
-            const inputId = source === 'entry' ? 'entryVoiceInput' : 'eventTag';
-            const note = document.getElementById(inputId).value;
-            if(!user || !note) return alert("請確認人員已選擇，並說話錄音");
-            const dateVal = source === 'entry' ? new Date().toISOString().split('T')[0] : document.getElementById('actionDate').value;
-            db.ref('logs').push({ user, type: "語音回覆", note, date: dateVal, time: new Date().toLocaleString() });
-            alert("回覆已送出"); 
-            document.getElementById(inputId).value = "";
-        }
-
-        // 修改：支援分層顯示
-        function openCategory(cat) {
-            const container = document.getElementById('itemContainer'); 
-            container.innerHTML = '';
-            document.getElementById('categoryTitle').innerText = (cat==='truss'?'🏗️ Truss類':cat==='tent'?'⛺ 帳篷類':'📦 其它物料');
-            
-            const subCats = remoteCategories[cat];
-            if (subCats) {
-                for (let subTitle in subCats) {
-                    // 畫出小區標題
-                    const titleDiv = document.createElement('div');
-                    titleDiv.className = 'sub-group-title';
-                    titleDiv.innerText = subTitle;
-                    container.appendChild(titleDiv);
-
-                    // 畫出該小區品項
-                    const items = Object.keys(subCats[subTitle]);
-                    items.forEach(itemName => {
-                        container.appendChild(createItemCard(itemName));
-                    });
-                }
-            } else {
-                container.innerHTML = '<div style="padding:20px; text-align:center;">資料載入中...</div>';
+    // ✅ 新增：用來強迫刷新畫面上數字的工具
+    function refreshDigits() {
+        db.ref('inventory').once('value', s => {
+            const d = s.val() || {};
+            for(let n in d) { 
+                const el = document.getElementById(`qty-${n}`);
+                if(el) el.innerText = d[n];
             }
-            showPage('listPage');
-        }
+        });
+        db.ref('target').once('value', s => {
+            const d = s.val() || {};
+            for(let n in d) {
+                const el = document.getElementById(`target-${n}`);
+                if(el) el.innerText = d[n];
+            }
+        });
+    }
 
-        function createItemCard(name) {
-            const card = document.createElement('div');
-            card.className = 'item-card';
-            card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <b style="color:#333; flex:1;">${name}</b>
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <span class="stock-label" id="qty-${name}">...</span>
-                        <span style="color:#ccc">/</span>
-                        <span class="target-label" id="target-${name}">0</span>
-                    </div>
+    function createItemCard(name) {
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <b style="color:#333; flex:1;">${name}</b>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <span class="stock-label" id="qty-${name}">-</span>
+                    <span style="color:#ccc">/</span>
+                    <span class="target-label" id="target-${name}">-</span>
                 </div>
-                <div class="qty-input-group">
-                    <input type="number" id="input-${name}" class="input-num" value="${draft[name] || ''}" oninput="updateDraft('${name}', this.value)" placeholder="數量">
-                    <button class="submit-btn" style="background:${currentMode==='入庫'?'#4CAF50':'#E91E63'}" onclick="submitChange('${name}')">確認</button>
-                </div>`;
-            
-            db.ref('inventory/' + name).on('value', s => { 
-                const el = document.getElementById(`qty-${name}`);
-                if(el) el.innerText = s.val() || 0; 
-            });
+            </div>
+            <div class="qty-input-group">
+                <input type="number" id="input-${name}" class="input-num" value="${draft[name] || ''}" oninput="updateDraft('${name}', this.value)" placeholder="數量">
+                <button class="submit-btn" style="background:${currentMode==='入庫'?'#4CAF50':'#E91E63'}" onclick="submitChange('${name}')">確認</button>
+            </div>`;
+        return card;
+    }
 
-            db.ref('target/' + name).on('value', s => { 
-                const el = document.getElementById(`target-${name}`);
-                if(el) el.innerText = s.val() || 0; 
-            });
-
-            return card;
-        }
-
-        function setMode(mode) {
-            currentMode = mode;
-            document.getElementById('modeTitle').innerText = (mode === '取用' ? '📤 出庫模式' : '📥 入庫模式');
-            document.getElementById('actionDate').valueAsDate = new Date();
-            const btn = document.getElementById('batchBtn');
+    function setMode(mode) {
+        currentMode = mode;
+        document.getElementById('modeTitle').innerText = (mode === '取用' ? '📤 出庫模式' : '📥 入庫模式');
+        document.getElementById('actionDate').valueAsDate = new Date();
+        const btn = document.getElementById('batchBtn');
+        if(btn) {
             btn.style.background = (mode === '入庫' ? '#4CAF50' : '#E91E63');
             btn.innerText = (mode === '入庫' ? '📥 一鍵全部入庫' : '📤 一鍵全部出庫');
-            showPage('homePage');
         }
+        showPage('homePage');
+    }
 
-        function showPage(id) { document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-        function updateDraft(n, v) { if (v && v !== "0") draft[n] = v; else delete draft[n]; }
+    function showPage(id) { 
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
+        document.getElementById(id).classList.add('active'); 
+    }
 
-        function submitBatch() {
-            const user = savedUser;
-            const items = Object.keys(draft);
-            if (!user || items.length === 0) return alert('請輸入數量');
-            if(confirm('確定送出？')) {
-                const event = document.getElementById('eventTag').value || "無備註";
-                items.forEach(name => {
-                    let delta = (currentMode === '入庫') ? Math.abs(parseInt(draft[name])) : -Math.abs(parseInt(draft[name]));
-                    db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
-                    db.ref('logs').push({ user, name, val: delta, event, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
-                });
-                draft = {}; alert('送出成功'); location.reload();
-            }
-        }
+    function updateDraft(n, v) { if (v && v !== "0") draft[n] = v; else delete draft[n]; }
 
-        function submitChange(name) {
-            const user = savedUser;
-            const val = parseInt(document.getElementById('input-' + name).value);
-            if (!user || isNaN(val)) return alert('填寫人員與數量');
-            let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
-            db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
-            db.ref('logs').push({ user, name, val: delta, event: document.getElementById('eventTag').value || "無備註", date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
-            alert('成功'); document.getElementById('input-' + name).value = ''; delete draft[name];
-        }
-
-        function showSummary() {
-            const container = document.getElementById('summaryContainer'); container.innerHTML = '載入中...';
-            db.ref('inventory').once('value', snap => {
-                const invData = snap.val() || {};
-                db.ref('target').once('value', targetSnap => {
-                    const targetData = targetSnap.val() || {};
-                    container.innerHTML = '';
-                    
-                    const groupNames = {truss: "🏗️ Truss 類", tent: "⛺ 帳篷類", others: "📦 其他物料"};
-
-                    for (let mainKey in remoteCategories) {
-                        container.innerHTML += `<div class="sub-group-title" style="margin-top:20px; color:#FFD700; background:rgba(0,0,0,0.3); padding:10px;">${groupNames[mainKey] || mainKey}</div>`;
-                        
-                        const subCats = remoteCategories[mainKey];
-                        for (let subTitle in subCats) {
-                            container.innerHTML += `<div style="padding:5px 10px; font-size:14px; color:#aaa;">● ${subTitle}</div>`;
-                            const items = Object.keys(subCats[subTitle]);
-                            items.forEach(name => {
-                                const row = document.createElement('div');
-                                row.style.cssText = "background:white; color:black; margin:5px 10px; padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;";
-                                row.innerHTML = `<span>${name}</span>
-                                    <div>
-                                        <b style="color:#E91E63;">${invData[name] || 0}</b> 
-                                        <span style="color:#ccc; margin:0 4px;">/</span> 
-                                        <b style="color:#2196F3;">${targetData[name] || 0}</b>
-                                    </div>`;
-                                container.appendChild(row);
-                            });
-                        }
-                    }
-                });
+    function submitBatch() {
+        const user = savedUser;
+        const items = Object.keys(draft);
+        if (!user || items.length === 0) return alert('請輸入數量');
+        if(confirm('確定送出？')) {
+            const event = document.getElementById('eventTag').value || "無備註";
+            items.forEach(name => {
+                let delta = (currentMode === '入庫') ? Math.abs(parseInt(draft[name])) : -Math.abs(parseInt(draft[name]));
+                db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
+                db.ref('logs').push({ user, name, val: delta, event, date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
             });
-            showPage('summaryPage');
+            draft = {}; alert('送出成功'); location.reload();
         }
+    }
 
-        window.onload = initUser;
-    </script>
+    function submitChange(name) {
+        const user = savedUser;
+        const val = parseInt(document.getElementById('input-' + name).value);
+        if (!user || isNaN(val)) return alert('填寫人員與數量');
+        let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
+        db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
+        db.ref('logs').push({ user, name, val: delta, event: document.getElementById('eventTag').value || "無備註", date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
+        alert('成功'); document.getElementById('input-' + name).value = ''; delete draft[name];
+    }
+
+    function showSummary() {
+        const container = document.getElementById('summaryContainer'); container.innerHTML = '載入中...';
+        db.ref('inventory').once('value', snap => {
+            const invData = snap.val() || {};
+            db.ref('target').once('value', targetSnap => {
+                const targetData = targetSnap.val() || {};
+                container.innerHTML = '';
+                const groupNames = {truss: "🏗️ Truss 類", tent: "⛺ 帳篷類", others: "📦 其他物料"};
+                for (let mainKey in remoteCategories) {
+                    container.innerHTML += `<div class="sub-group-title" style="margin-top:20px; color:#FFD700; background:rgba(0,0,0,0.3); padding:10px;">${groupNames[mainKey] || mainKey}</div>`;
+                    const subCats = remoteCategories[mainKey];
+                    for (let subTitle in subCats) {
+                        container.innerHTML += `<div style="padding:5px 10px; font-size:14px; color:#aaa;">● ${subTitle}</div>`;
+                        const items = Object.keys(subCats[subTitle]);
+                        items.forEach(name => {
+                            const row = document.createElement('div');
+                            row.style.cssText = "background:white; color:black; margin:5px 10px; padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;";
+                            row.innerHTML = `<span>${name}</span>
+                                <div>
+                                    <b style="color:#E91E63;">${invData[name] || 0}</b> 
+                                    <span style="color:#ccc; margin:0 4px;">/</span> 
+                                    <b style="color:#2196F3;">${targetData[name] || 0}</b>
+                                </div>`;
+                            container.appendChild(row);
+                        });
+                    }
+                }
+            });
+        });
+        showPage('summaryPage');
+    }
+
+    window.onload = initUser;
+</script>
 </body>
 </html>
+
