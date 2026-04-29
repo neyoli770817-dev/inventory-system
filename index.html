@@ -11,11 +11,23 @@
     <link rel="apple-touch-icon" href="https://i.postimg.cc/XNCSk29x/八毅LOGO.jpg">
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    <style>
+   <style>
         :root { --bg-wine: #4A0404; --btn-white: #FFFFFF; --text-dark: #333; }
+        /* 模式動態背景顏色 */
+        body.mode-out-theme { background-color: #720909; transition: 0.3s; }
+        body.mode-in-theme { background-color: #11382b; transition: 0.3s; }
         body { font-family: -apple-system, sans-serif; background-color: var(--bg-wine); color: white; margin: 0; padding: 10px; overflow-x: hidden; }
+        
         .page { display: none; padding-bottom: 80px; } .page.active { display: block; }
-        .header { text-align: center; padding: 10px 0; background: var(--bg-wine); position: sticky; top: 0; z-index: 100; }
+        .header { text-align: center; padding: 10px 0; background: var(--bg-wine); position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: center; min-height: 60px; }
+        
+        /* 標題變色樣式 */
+        .header-out { background: #E91E63 !important; }
+        .header-in { background: #4CAF50 !important; }
+
+        /* 快速切換按鈕 */
+        .switch-mode-btn { position: absolute; right: 10px; padding: 6px 12px; background: white; color: #333; border-radius: 20px; font-size: 13px; font-weight: bold; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer; }
+
         .mode-container { display: flex; flex-direction: column; gap: 15px; align-items: center; justify-content: flex-start; padding-top: 10px; }
         .mode-btn { width: 100%; padding: 30px; border-radius: 15px; font-size: 28px; font-weight: bold; border: none; cursor: pointer; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .btn-out { background: #E91E63; } .btn-in { background: #4CAF50; }  
@@ -39,32 +51,309 @@
         .qty-input-group { display: flex; align-items: center; gap: 10px; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
         .input-num { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 5px; text-align: center; font-size: 18px; }
         .submit-btn { flex: 1; color: white; border: none; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        .back-btn { background: none; border: 1px solid white; color: white; padding: 8px 12px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; }
+        .back-btn { background: none; border: 1px solid white; color: white; padding: 8px 12px; border-radius: 5px; cursor: pointer; }
         .batch-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #222; padding: 15px; z-index: 999; text-align: center; }
         .batch-btn { width: 90%; max-width: 500px; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; border: none; color: white; cursor: pointer; }
         .sub-group-title { width: 100%; color: #FFD700; padding: 10px 0; margin-top: 15px; font-weight: bold; font-size: 18px; border-bottom: 1px dashed #FFD700; }
-        /* 模式顏色定義 */
-.mode-out-theme { background-color: #8B0000 !important; } /* 深紅背景 */
-.mode-in-theme { background-color: #1B4D3E !important; }  /* 深綠背景 */
-.header-out { background: #E91E63 !important; } /* 出庫標題亮紅 */
-.header-in { background: #4CAF50 !important; }  /* 入庫標題亮綠 */
-
-/* 快速切換按鈕樣式 */
-.switch-mode-btn {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    padding: 5px 12px;
-    background: white;
-    color: var(--text-dark);
-    border-radius: 20px;
-    font-size: 14px;
-    font-weight: bold;
-    border: none;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
     </style>
+
+    <script>
+    const firebaseConfig = { 
+        apiKey: "AIzaSyBNiATgf4yVR5qZ5CEmGClfm22yjq2fBlI", 
+        authDomain: "bayi-inventory.firebaseapp.com", 
+        projectId: "bayi-inventory", 
+        databaseURL: "https://bayi-inventory-default-rtdb.firebaseio.com", 
+        storageBucket: "bayi-inventory.firebasestorage.app", 
+        messagingSenderId: "494997600674", 
+        appId: "1:494997600674:web:711588fab8d8ae70eb5afb" 
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let currentMode = '', draft = {}, savedUser = localStorage.getItem('bayi_user') || "";
+    let currentVoiceTarget = ''; 
+    let remoteCategories = {}; 
+
+    // 全域監聽資料庫
+    db.ref('inventory').on('value', snap => {
+        const data = snap.val() || {};
+        for (let name in data) {
+            const el = document.getElementById(`qty-${name}`);
+            if (el) el.innerText = data[name];
+        }
+    });
+
+    db.ref('target').on('value', snap => {
+        const data = snap.val() || {};
+        for (let name in data) {
+            const el = document.getElementById(`target-${name}`);
+            if (el) el.innerText = data[name];
+        }
+    });
+
+    function initUser() {
+        if(savedUser) {
+            if(document.getElementById('userName')) document.getElementById('userName').value = savedUser;
+            if(document.getElementById('entryUserName')) document.getElementById('entryUserName').value = savedUser;
+        }
+        fetchCategories(); 
+    }
+
+    function fetchCategories() {
+        db.ref('categories').on('value', snap => {
+            remoteCategories = snap.val() || {};
+        });
+    }
+
+    function syncUser(val) {
+        savedUser = val;
+        localStorage.setItem('bayi_user', val);
+        ['userName', 'entryUserName'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.value = val;
+        });
+    }
+
+    function setMode(mode) {
+        currentMode = mode;
+        const body = document.body;
+        const modeTitle = document.getElementById('modeTitle');
+        const batchBtn = document.getElementById('batchBtn');
+        
+        // 視覺變色邏輯
+        if (mode === '取用') {
+            body.className = 'mode-out-theme';
+            modeTitle.innerText = '📤 出庫模式';
+            if(batchBtn) {
+                batchBtn.style.background = '#E91E63';
+                batchBtn.innerText = '📤 一鍵全部出庫';
+            }
+        } else {
+            body.className = 'mode-in-theme';
+            modeTitle.innerText = '📥 入庫模式';
+            if(batchBtn) {
+                batchBtn.style.background = '#4CAF50';
+                batchBtn.innerText = '📥 一鍵全部入庫';
+            }
+        }
+        
+        document.getElementById('actionDate').valueAsDate = new Date();
+        showPage('homePage');
+    }
+
+    function toggleQuickMode() {
+        const nextMode = (currentMode === '取用' ? '入庫' : '取用');
+        if (Object.keys(draft).length > 0) {
+            if (!confirm("切換模式會清空目前的暫存數量，確定切換？")) return;
+        }
+        draft = {}; 
+        setMode(nextMode);
+        
+        // 更新當前頁面顏色
+        const currentTitle = document.getElementById('categoryTitle').innerText;
+        let catKey = 'others';
+        if(currentTitle.includes('Truss')) catKey = 'truss';
+        else if(currentTitle.includes('帳篷')) catKey = 'tent';
+        openCategory(catKey);
+    }
+
+    function openCategory(cat) {
+        const container = document.getElementById('itemContainer'); 
+        container.innerHTML = '';
+        
+        // 設定標題與切換按鈕
+        const titleText = (cat==='truss'?'🏗️ Truss類':cat==='tent'?'⛺ 帳篷類':'📦 其它物料');
+        const header = document.getElementById('listPage').querySelector('.header');
+        header.className = 'header ' + (currentMode === '取用' ? 'header-out' : 'header-in');
+        
+        document.getElementById('categoryTitle').innerText = titleText;
+        
+        // 確保切換按鈕存在
+        let switchBtn = document.getElementById('quickSwitchBtn');
+        if(!switchBtn) {
+            switchBtn = document.createElement('button');
+            switchBtn.id = 'quickSwitchBtn';
+            switchBtn.className = 'switch-mode-btn';
+            switchBtn.onclick = toggleQuickMode;
+            header.appendChild(switchBtn);
+        }
+        switchBtn.innerText = currentMode === '取用' ? '🔄 轉為入庫' : '🔄 轉為出庫';
+
+        const subCats = remoteCategories[cat];
+        if (subCats) {
+            for (let subTitle in subCats) {
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'sub-group-title';
+                titleDiv.innerText = subTitle;
+                container.appendChild(titleDiv);
+                Object.keys(subCats[subTitle]).forEach(itemName => {
+                    container.appendChild(createItemCard(itemName));
+                });
+            }
+            refreshDigits();
+        }
+        showPage('listPage');
+    }
+
+    function createItemCard(name) {
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <b style="color:#333; flex:1;">${name}</b>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <span class="stock-label" id="qty-${name}">-</span>
+                    <span style="color:#ccc">/</span>
+                    <span class="target-label" id="target-${name}">-</span>
+                </div>
+            </div>
+            <div class="qty-input-group">
+                <input type="number" id="input-${name}" class="input-num" value="${draft[name] || ''}" oninput="updateDraft('${name}', this.value)" placeholder="0">
+                <button class="submit-btn" style="background:${currentMode==='入庫'?'#4CAF50':'#E91E63'}" onclick="submitChange('${name}')">確認</button>
+            </div>`;
+        return card;
+    }
+
+    function updateDraft(n, v) { if (v && v !== "0") draft[n] = v; else delete draft[n]; }
+
+    // --- 核心：批量送出核對 ---
+    function submitBatch() {
+        const user = savedUser;
+        const items = Object.keys(draft);
+        if (!user) return alert('請先選擇人員！');
+        if (items.length === 0) return alert('尚未輸入任何數量！');
+
+        let msg = `📋 【${currentMode}核對清單】\n人員：${user}\n----------------------\n`;
+        items.forEach(name => { msg += `🔹 ${name} : ${draft[name]}\n`; });
+        msg += `----------------------\n確定要送出嗎？`;
+
+        if (confirm(msg)) {
+            const event = document.getElementById('eventTag').value || "無備註";
+            const date = document.getElementById('actionDate').value;
+            items.forEach(name => {
+                let delta = (currentMode === '入庫' ? 1 : -1) * Math.abs(parseInt(draft[name]));
+                db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
+                db.ref('logs').push({ user, name, val: delta, event, date, time: new Date().toLocaleString() });
+            });
+            draft = {};
+            alert('✅ 批量修改成功！');
+            location.reload();
+        }
+    }
+
+    // --- 核心：單項送出核對 ---
+    function submitChange(name) {
+        const val = parseInt(document.getElementById('input-' + name).value);
+        if (!savedUser || isNaN(val)) return alert('請確認人員與數量');
+
+        let msg = `📋 【單項確認】\n模式：${currentMode}\n品項：${name}\n數量：${val}\n確定送出？`;
+        
+        if (confirm(msg)) {
+            let delta = (currentMode === '入庫' ? 1 : -1) * Math.abs(val);
+            db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
+            db.ref('logs').push({ 
+                user: savedUser, name, val: delta, 
+                event: document.getElementById('eventTag').value || "無備註", 
+                date: document.getElementById('actionDate').value, 
+                time: new Date().toLocaleString() 
+            });
+            alert('✅ 成功');
+            document.getElementById('input-' + name).value = '';
+            delete draft[name];
+            refreshDigits();
+        }
+    }
+
+    function refreshDigits() {
+        db.ref('inventory').once('value', s => {
+            const d = s.val() || {};
+            for(let n in d) { 
+                const el = document.getElementById(`qty-${n}`);
+                if(el) el.innerText = d[n];
+            }
+        });
+        db.ref('target').once('value', s => {
+            const d = s.val() || {};
+            for(let n in d) {
+                const el = document.getElementById(`target-${n}`);
+                if(el) el.innerText = d[n];
+            }
+        });
+    }
+
+    function showPage(id) { 
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active')); 
+        document.getElementById(id).classList.add('active'); 
+    }
+
+    function showSummary() {
+        const container = document.getElementById('summaryContainer'); 
+        container.innerHTML = '載入中...';
+        db.ref('inventory').once('value', snap => {
+            const invData = snap.val() || {};
+            db.ref('target').once('value', targetSnap => {
+                const targetData = targetSnap.val() || {};
+                container.innerHTML = '';
+                const groupNames = {truss: "🏗️ Truss 類", tent: "⛺ 帳篷類", others: "📦 其他物料"};
+                for (let mainKey in remoteCategories) {
+                    container.innerHTML += `<div class="sub-group-title" style="margin-top:20px; color:#FFD700;">${groupNames[mainKey] || mainKey}</div>`;
+                    const subCats = remoteCategories[mainKey];
+                    for (let subTitle in subCats) {
+                        container.innerHTML += `<div style="padding:5px 10px; font-size:14px; color:#aaa;">● ${subTitle}</div>`;
+                        Object.keys(subCats[subTitle]).forEach(name => {
+                            const row = document.createElement('div');
+                            row.style.cssText = "background:white; color:black; margin:5px 10px; padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;";
+                            row.innerHTML = `<span>${name}</span>
+                                <div>
+                                    <b style="color:#E91E63;">${invData[name] || 0}</b> 
+                                    <span style="color:#ccc; margin:0 4px;">/</span> 
+                                    <b style="color:#2196F3;">${targetData[name] || 0}</b>
+                                </div>`;
+                            container.appendChild(row);
+                        });
+                    }
+                }
+            });
+        });
+        showPage('summaryPage');
+    }
+
+    // 語音相關邏輯 (保持原樣)
+    let recognition;
+    if ('webkitSpeechRecognition' in window) {
+        recognition = new webkitSpeechRecognition();
+        recognition.lang = 'zh-TW';
+        recognition.onresult = (e) => {
+            const res = e.results[0][0].transcript;
+            const targetId = currentVoiceTarget === 'entry' ? 'entryVoiceInput' : 'eventTag';
+            document.getElementById(targetId).value += res + " ";
+            stopVisuals();
+        };
+        recognition.onend = stopVisuals;
+    }
+    function toggleVoice(source) {
+        currentVoiceTarget = source;
+        const btnId = source === 'entry' ? 'entryMicBtn' : 'voiceBtn';
+        const btn = document.getElementById(btnId);
+        if (btn.classList.contains('recording')) { recognition.stop(); } 
+        else { recognition.start(); btn.classList.add('recording'); btn.innerText = "🛑"; }
+    }
+    function stopVisuals() { 
+        ['entryMicBtn', 'voiceBtn'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) { btn.classList.remove('recording'); btn.innerText = "🎤"; }
+        });
+    }
+    function quickSendVoice(source) {
+        const inputId = source === 'entry' ? 'entryVoiceInput' : 'eventTag';
+        const note = document.getElementById(inputId).value;
+        if(!savedUser || !note) return alert("請確認人員已選取並錄音");
+        db.ref('logs').push({ user: savedUser, type: "語音回覆", note, date: new Date().toISOString().split('T')[0], time: new Date().toLocaleString() });
+        alert("回覆已送出"); document.getElementById(inputId).value = "";
+    }
+
+    window.onload = initUser;
+    </script>
 </head>
 <body>
 
