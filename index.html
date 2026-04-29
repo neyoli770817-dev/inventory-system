@@ -299,22 +299,48 @@
 
     function updateDraft(n, v) { if (v && v !== "0") draft[n] = v; else delete draft[n]; }
 
-    function submitBatch() {
-    const user = savedUser;
-    const items = Object.keys(draft);
+   function submitBatch() {
+        const user = savedUser;
+        const items = Object.keys(draft);
 
-    if (!user) return alert('請先選擇人員！');
-    if (items.length === 0) return alert('你還沒有輸入任何數量喔！');
+        if (!user) return alert('請先選擇人員！');
+        if (items.length === 0) return alert('尚未輸入任何數量！');
 
-    // --- 1. 建立核對清單文字 ---
-    let confirmMessage = "📋 【庫存修改核對】\n";
-    confirmMessage += "------------------------\n";
-    confirmMessage += "操作模式：" + (currentMode === '入庫' ? "📥 入庫 (歸還)" : "📤 出庫 (拿取)") + "\n";
-    confirmMessage += "執行人員：" + user + "\n\n";
-    
-    items.forEach(name => {
-        confirmMessage += "🔹 " + name + " ： " + draft[name] + "\n";
-    });
+        // 1. 建立核對文字
+        let confirmMessage = "📋 【批量庫存核對清單】\n";
+        confirmMessage += "----------------------------\n";
+        confirmMessage += "操作模式：" + (currentMode === '入庫' ? "📥 入庫 (歸還)" : "📤 出庫 (拿取)") + "\n";
+        confirmMessage += "執行人員：" + user + "\n\n";
+        
+        items.forEach(name => {
+            confirmMessage += "品項：" + name + "\n";
+            confirmMessage += "數量：" + draft[name] + "\n";
+            confirmMessage += "----------------------------\n";
+        });
+        
+        confirmMessage += "\n確定要送出以上內容嗎？";
+
+        // 2. 核對後送出
+        if (confirm(confirmMessage)) {
+            const event = document.getElementById('eventTag').value || "無備註";
+            const actionDate = document.getElementById('actionDate').value;
+
+            items.forEach(name => {
+                let delta = (currentMode === '入庫') ? Math.abs(parseInt(draft[name])) : -Math.abs(parseInt(draft[name]));
+                
+                // 更新 Firebase
+                db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
+                db.ref('logs').push({
+                    user: user, name: name, val: delta, event: event, 
+                    date: actionDate, time: new Date().toLocaleString()
+                });
+            });
+
+            draft = {}; 
+            alert('✅ 批量修改成功！');
+            location.reload(); 
+        }
+    }
     
     confirmMessage += "------------------------\n";
     confirmMessage += "確定要送出以上修改嗎？";
@@ -355,14 +381,40 @@
     }
 }
 
-    function submitChange(name) {
+   function submitChange(name) {
         const user = savedUser;
-        const val = parseInt(document.getElementById('input-' + name).value);
-        if (!user || isNaN(val)) return alert('填寫人員與數量');
-        let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
-        db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
-        db.ref('logs').push({ user, name, val: delta, event: document.getElementById('eventTag').value || "無備註", date: document.getElementById('actionDate').value, time: new Date().toLocaleString() });
-        alert('成功'); document.getElementById('input-' + name).value = ''; delete draft[name];
+        const inputEl = document.getElementById('input-' + name);
+        const val = parseInt(inputEl.value);
+
+        if (!user || isNaN(val)) return alert('請確認人員已選取並填入數量');
+
+        // 建立單個核對文字
+        let confirmMessage = "📋 【單項庫存確認】\n";
+        confirmMessage += "----------------------------\n";
+        confirmMessage += "人員：" + user + "\n";
+        confirmMessage += "動作：" + (currentMode === '入庫' ? "📥 入庫" : "📤 出庫") + "\n";
+        confirmMessage += "品項：" + name + "\n";
+        confirmMessage += "數量：" + val + "\n";
+        confirmMessage += "----------------------------\n";
+        confirmMessage += "確定送出嗎？";
+
+        if (confirm(confirmMessage)) {
+            let delta = (currentMode === '入庫') ? Math.abs(val) : -Math.abs(val);
+            const actionDate = document.getElementById('actionDate').value;
+            const event = document.getElementById('eventTag').value || "無備註";
+
+            db.ref('inventory/' + name).transaction(c => (c || 0) + delta);
+            db.ref('logs').push({
+                user: user, name: name, val: delta, event: event, 
+                date: actionDate, time: new Date().toLocaleString()
+            });
+
+            alert('✅ 送出成功');
+            inputEl.value = '';
+            delete draft[name];
+            // 更新畫面上剛剛改動的數字 (如果不重整頁面)
+            refreshDigits();
+        }
     }
 
     function showSummary() {
